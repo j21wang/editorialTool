@@ -1,0 +1,32 @@
+{
+	"manifest_version": 2,
+	"name": "Editorial Tool",
+	"description": "This extension permits a user to add web page content to a universal database.",
+	"version": "1.0",
+	"permissions": [
+        "tabs",
+        "http://*/*",
+        "https://*/*"
+    ],
+	"browser_action": {
+		//"default_popup": "popup.html",
+		"default_icon": "images/icon.png"
+	},
+    "web_accessible_resources": [
+        "jquery-2.0.2.min.js"
+    ],
+	"background": {
+		"scripts": ["js/uuid.js", "js/background.js"]
+	},
+    "content_scripts": [
+        {
+            "matches": ["http://*/*", "https://*/*"],
+            "css": ["css/lb.css", "css/tipped.css"],
+            "js": ["js/jquery-2.0.2.min.js", "js/tipped.css", "js/content.js"]
+        }
+    ],
+    "permissions": [
+        "contentSettings",
+        "http://ec2-54-214-179-160.us-west-2.compute.amazonaws.com/"
+    ]
+}
