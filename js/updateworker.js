@@ -1,31 +1,27 @@
 self.onmessage = function(evt) {
     debugger;
-    var row = evt.data.row;
-    var schema = evt.data.schema;
+    var url = evt.data.url;
+    var text = evt.data.text1;
+    var selectedTable = evt.data.table;
+    console.log(url);
+    console.log(text);
+    console.log(selectedTable);
     var xhr = new XMLHttpRequest();
-    var params = "id=" + encodeURIComponent(row.id);
-    params = params + "url=" + encodeURIComponent(row.url);
-    for (sIdx in schema) {
-        var name = schema[sIdx].name;
-        var id = schema[sIdx].id;
-        var val = row.data[id];
-        if (!(val === null) && !(val === undefined)) {
-            if (params != "") {
-                params = params + "&";
-            }
-            params = params + name + "=" + encodeURIComponent(val);
-        }
-    }
+    var params = "text=" + encodeURIComponent(text);
+    params = params + "&url=" + encodeURIComponent(url);
+    params = params + "&selectedTable=" + encodeURIComponent(selectedTable);
     params = params + "&insert=Insert";
-    xhr.open("POST", "http://ec2-54-214-179-160.us-west-2.compute.amazonaws.com/index.php", true);
+    console.log(params);
+    xhr.open("POST", "http://researchvm-5.cs.rutgers.edu/index.php", true);
     xhr.onload = function(evt) {
         if (this.status == 200) {
+            console.log(this.response);
             // Should the server be responding with something other than 200 if the insert fails?
             if (this.response.indexOf("Unable to Insert") > -1) {
-                self.postMessage({id: row.id, status: 'dirty', message: this.response});
+                self.postMessage({message: this.response});
             }
             else {
-                self.postMessage({id: row.id, status: 'clean', message: this.response});
+                self.postMessage({message: this.response});
             }
         }
     }

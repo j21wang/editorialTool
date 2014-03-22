@@ -1,241 +1,238 @@
-$(document).mouseup(function(){
+var queue = new Array();
+var tagIndexArr = new Array();
+
+$(document).mouseup(function(e){
     highlight();
 });
 
-/*$.event.special.tripleclick = {
-    setup: function(data, namespaces){
-        var elem = this, $elem = jQuery(elem);
-        $elem.bind('click', jQuery.event.special.tripleclick.handler);
-    },
-
-    teardown: function(namespaces){
-        var elem = this, $elem = jQuery(elem);
-        $elem.unbind('click', jQuery.event.special.tripleclick.handler)
-    },
-
-    handler: function(event){
-        var elem = this, $elem = jQuery(elem), clicks = $elem.data('clicks') || 0;
-        clicks += 1;
-        if(clicks === 3){
-            clicks = 0;
-            event.type = "tripleclick";
-            jQuery.event.handle.apply(this,arguments);
+function resetSelection(){
+    if(window.getSelection){
+        if(window.getSelection().empty){
+            window.getSelection().empty();
         }
-        $elem.data('clicks',clicks);
     }
-}*/
+}
 
-function getSelectedText(){
-    var text = "";
-    if(typeof window.getSelection != "undefined"){
-        text = window.getSelection().toString();
-    } else if(typeof document.selection != "undefined" && document.selection.type == "Text"){
-        text = document.selection.createRange().text;
+function getSelectionParent(sel){
+    var parentElement = sel.getRangeAt(0).commonAncestorContainer;
+    if(parentElement.nodeType != 1){
+        parentElement = parentElement.parentNode;
     }
-    return text;
+    return parentElement;
+}
+
+function getSelectionHTML(sel){
+    var container = document.createElement("div");
+    for (var i = 0, len = sel.rangeCount; i < len; ++i) {
+        container.appendChild(sel.getRangeAt(i).cloneContents());
+    }
+    return container.innerHTML;
+}
+
+function checkQueue(queue){
+    //needs to be more refined
+    if(queue.length != 3) return false;
+
+    if(queue[0][0][0] == queue[1][0][0] && queue[0][0][0] == queue[2][0][0]){
+        return true;
+    }
+    return false;
 }
 
 function highlight(){
-    var selectedText = getSelectedText();
-    if(selectedText){
-        Tipped.create(this,'text');
-        alert(selectedText);            
-    }
-}
+    $(document).one("keydown",function(e){
 
-chrome.runtime.onMessage.addListener(
-    function(message, sender, sendResponse) {
-        alert("helllo");
-        if (message.toggle) {
-            /*if (up) {
-                lowerGrid();
-            }
-            else {
-                raiseGrid();
-            }
-            up = !up;
-            */
-            alert("1");
-        }
-        else if (message.row) {
-            alert("2");
-            //setRowSyncStatus(message.row.id, message.row.syncState);
-        }
-    }
-);
+        var html = "";
+        if (window.getSelection) {
 
-/*var doc = $('body');
-var lightboxBack = $("<div class='lightboxBack'>");
-doc.prepend(lightboxBack);
-var lightboxTop = $("<div class='lightboxTop'>");
-doc.append(lightboxTop);
-var lightboxTable = $("<div class='lightboxTable'>");
-lightboxTop.append(lightboxTable);
-var lightboxRow = $("<div class='lightboxRow'>");
-lightboxTable.append(lightboxRow);
-var lightboxCell = $("<div class='lightboxCell'>");
-lightboxRow.append(lightboxCell);
-var lightboxPanel = $("<div class='lightboxPanel'>");
-lightboxCell.append(lightboxPanel);
+            var selection = window.getSelection();
+            if (selection.rangeCount) {
+                var html = getSelectionHTML(selection);
+                var anchorNode = selection.anchorNode;
 
-function updateGrid(raiseWhenDone) {
-    var raise = raiseWhenDone;
-    chrome.extension.sendMessage({getAllData: []},
-        function(res) {
-            lightboxPanel.empty();
-            var grid = $("<div class='dropTable'>");
-            lightboxPanel.append(grid);
-                                 
-            // Header labels
-            var labelGroup = $("<div class='headerGroup'>");
-            grid.append(labelGroup);
-            var labelRow = $("<div class='headerRow'>");
-            labelGroup.append(labelRow);
-            for (lab in res.schema) {
-                var cell = $("<div class='headerCell'>");
-                labelRow.append(cell);
-                cell.append(res.schema[lab].name);
-            }
-                                 
-            // Old data rows
-            var recordGroup = $("<div class='recordGroup'>");
-            grid.append(recordGroup);
-            for (rIdx in res.data) {
-                var row = res.data[rIdx];
-                var dataRow = $("<div class='recordRow'>");
-                dataRow.attr('id', row.id)
-                recordGroup.append(dataRow);
-                for (sIdx in res.schema) {
-                    var cId = res.schema[sIdx].id;
-                    var cell = $("<div class='recordCell'>");
-                    cell.attr('id', cId);
-                    dataRow.append(cell);
-                    var div = $("<div class='content1'>");
-                    cell.append(div);
-                    if (row.syncState == "dirty") div.addClass('dirty');
-                    else div.addClass('clean');
-                    if (!(row.data[cId] === null)) {
-                        div.text(row.data[cId]);
+                if(html.indexOf('<img') != -1){
+                    var src = $(html).attr("src");
+                    if(e.which == 13){
+                        addToList(src);
                     }
-                    div.on("dragenter", function(evt) { this.classList.add('over'); });
-                    div.on("mouseenter", function(evt) { this.classList.add('over'); });
-                    div.on("dragover", function(evt) { evt.preventDefault(); });
-                    div.on("dragleave", function(evt) { this.classList.remove('over'); });
-                    div.on("mouseleave", function(evt) { this.classList.remove('over'); });
-                    div.on("click", function(evt) { this.contentEditable = 'true'; });
-                    div.on("blur", blur);
-                    div.on("drop", drop);
+                } else {
+                    if(e.which == 13){
+                        addToList(html);
+                        var pathToSelected = "/html/body//" + anchorNode.parentElement.localName + "[contains(.,'"+html+"')]";
+                        var result = findSelectedTag(pathToSelected);
+                        var tagArr = makeTagArr(pathToSelected,result);
+                        if(queue.length >= 3){
+                            queue.pop();
+                        }
+                        queue.push(tagArr);
+                        var isSimilar = checkQueue(queue);
+                        if(isSimilar){
+                            findSimilarTags(queue);
+                        } else {
+                        }
+                        //only have to findSimilarTags if 3 consec times
+                        //findSimilarTags(pathToSelected,result);
+
+                    }
                 }
             }
-                                 
-            // New data row
-            var addGroup = $("<div class='addGroup'>");
-            grid.append(addGroup);
-            var dataRow = $("<div class='recordRow'>");
-            addGroup.append(dataRow);
-            for (lab in res.schema) {
-                var cell = $("<div class='recordCell'>");
-                cell.attr('id', res.schema[lab].id);
-                dataRow.append(cell);
-                var div = $("<div class='content1'>");
-                cell.append(div);
-                div.addClass('neutral');
-                div.on("dragenter", function(evt) { this.classList.add('over'); });
-                div.on("mouseenter", function(evt) { this.classList.add('over'); });
-                div.on("dragover", function(evt) { evt.preventDefault(); });
-                div.on("dragleave", function(evt) { this.classList.remove('over'); });
-                div.on("mouseleave", function(evt) { this.classList.remove('over'); });
-                div.on("click", function(evt) { this.contentEditable = 'true'; });
-                div.on("blur", blur);
-                div.on("drop", drop);
-            }
-            if (raise) {
-                lightboxBack.fadeIn(300);
-                lightboxTop.fadeIn(300);
-            }
-        }
-    );
+        }      
+    });
 }
 
-var up = false;
-
-function raiseGrid() {
-    updateGrid(true);
+function findSelectedTag(pathToSelected){
+    console.log(pathToSelected);
+    var nodes = document.evaluate(pathToSelected, document, null, XPathResult.ANY_TYPE, null);
+    var result = nodes.iterateNext();
+    return result;
 }
 
-function lowerGrid() {
-    var focused = $(':focus');
-    if (focused.length) {
-        focused.blur();
+function makeTagArr(pathToSelected,result){
+    var backwardsPath = pathToSelected;
+    var originalTagName = $(result).prop("tagName");
+    var currentTagName = $(result).prop("tagName").toLowerCase();
+    var siblingIndex = $(result).index();
+    var documentIndex = $(currentTagName).index(result);
+    var indexArr = new Array();
+    var noIndexTagArr = new Array();
+    var indexTagArr = new Array();
+    indexTagArr.unshift([currentTagName,documentIndex,siblingIndex]);
+
+
+    /* going backwards to html tag from selected tag */
+    while(currentTagName != "html"){
+        backwardsPath = backwardsPath + "/parent::*";
+        var nodes = document.evaluate(backwardsPath, document, null, XPathResult.ANY_TYPE, null);
+        var nodesResult = nodes.iterateNext();
+        currentTagName = $(nodesResult).prop("tagName").toLowerCase();
+        siblingIndex = $(nodesResult).index(); //sibling number
+        documentIndex = $(currentTagName).index(nodesResult); //whole document
+        indexTagArr.unshift([currentTagName,documentIndex,siblingIndex]);
     }
-    lightboxBack.fadeOut(300);
-    lightboxTop.fadeOut(300);
+    return indexTagArr;
 }
 
-function updateField(rowId, pageUrl, fieldId, value) {
-    chrome.extension.sendMessage({setColumnValueById: [rowId, pageUrl, fieldId, value]});
+function arraysEqual(a,b){
+    if(a === b) return true;
+    if(a == null || b == null) return false;
+    if(a.length != b.length) return false;
+    for(var i=0; i<a.length; ++i){
+        if(a[i] !== b[i]) return false;
+    }
+    return true;
 }
 
-function blur(evt) {
-    this.contentEditable = 'false';
-    var val = this.innerText;
-    if (val.trim() == "") return;
-    var rowId = $(this).parent().parent().attr('id');
+function getSiblingNumber(queue){
+   var firstNumber = queue[0][queue[0].length-1][2];
+   var secondNumber = queue[1][queue[1].length-1][2];
+   var thirdNumber = queue[2][queue[2].length-1][2];
+
+   if(firstNumber == secondNumber && firstNumber == thirdNumber){
+       return firstNumber;
+   }
+   return -1;
+}
+
+function findSimilarTags(queue){
+    var i = 0;
+    var lastEqual;
+
+    //find the last equal tag all these elements have
+    while(arraysEqual(queue[0][i],queue[1][i]) && arraysEqual(queue[0][i],queue[2][i])){
+        lastEqual = queue[0][i];
+        i++;
+    }
+    console.log(lastEqual);
+    lastEqual = $(lastEqual[0] + ":eq(" + lastEqual[1] + ")");
+    var lastEqualChildren = $(lastEqual[0]).children();
+    var found;
+    while(i < queue[0].length){
+        found = $(lastEqual[0]).find(queue[0][i][0]);
+        console.log(found);
+        i++;
+    }
+
+    var siblingNumber = getSiblingNumber(queue);
+    console.log(siblingNumber);
+
+    //if sib number is the same
+    var similarElement;
+    var originalBackground;
+    $(found).each(function(){
+        console.log(this);
+        var foundSibIndex = $(this).index(); //sibling number
+        console.log(foundSibIndex);
+        if(foundSibIndex == siblingNumber){
+            originalBackground = $(this).css("background-color"); 
+            $(this).addClass("highlighted")
+                             .css("background-color","yellow")
+                             .css("opacity",0.8);
+        } /*else if(siblingNumber == -1){
+            //if sibling number for all 3 selected are different
+            //then add all of them?
+            similarElement = this;
+            originalBackground = $(similarElement).css("background-color"); 
+            console.log(originalBackground);
+            $(similarElement).addClass("highlighted")
+                             .css("background-color","yellow")
+                             .css("opacity",0.8);
+
+        }*/
+        
+    });
+
+    /*element = noIndexTagArr.shift();
+    ind = indexArr.shift();
+    selectedElement = $(element + ":eq(" + ind + ")");
+    console.log($(selectedElement[0]).siblings());
+
+    var similarElement;
+    var originalBackground;
+    $($(selectedElement[0]).siblings()).each(function(){
+        similarElement = $(this).children()[selectedIndex];
+        originalBackground = $(similarElement).css("background-color"); 
+        console.log(originalBackground);
+        $(similarElement).addClass("highlighted")
+                         .css("background-color","yellow")
+                         .css("opacity",0.8);
+        
+    });
+        var add = confirm("Add to DB?");
+        if(add){
+            //add to db
+            console.log("Adding all to DB");
+            $(".highlighted").css("background-color",originalBackground)
+                             .removeClass("highlighted");
+        } else {
+            $(".highlighted").hover(function(){
+                individualAdd = confirm("Add this?");
+                if(individualAdd){
+                    //add to db
+                } else {
+                }
+                $(this).css("background-color",originalBackground)
+                       .removeClass("highlighted");
+
+            });
+        }*/
+}
+
+function loadXMLDoc(){
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET",$(location).attr('href'), false);
+    xhr.send("");
+    return xhr;
+}
+
+function update(pageUrl, value, selectedTable){
+    chrome.extension.sendMessage({message: [pageUrl, value, selectedTable]}, function(response){
+        console.log(response);
+    });
+}
+
+function addToList(item){
+    var val = item;
     var url = $(location).attr('href');
-    var fieldId = $(this).parent().attr('id');
-    updateField(rowId, url, fieldId, val);
-    if (rowId === undefined) {
-        updateGrid();
-    }
-    else {
-        setRowSyncStatus(rowId, "dirty");
-    }
+    var table = "selected";
+    update(url,val,table);
 }
-
-function drop(evt) {
-    var val = window.getSelection().toString();
-    this.innerText = val;
-    var rowId = $(this).parent().parent().attr('id');
-    var url = $(location).attr('href');
-    var fieldId = $(this).parent().attr('id');
-    updateField(rowId, url, fieldId, val);
-}
-
-function setRowSyncStatus(rowId, syncStatus) {
-    var cells = $("#" + rowId + " div.content1");
-    var other;
-    if (syncStatus == "dirty") {
-        other = "clean";
-    }
-    else {
-        other = "dirty";
-    }
-    cells.removeClass(other).addClass(syncStatus);
-}
-
-var up = false;
-
-$(document).on("dragstart", function(evt) {
-    raiseGrid();
-});
-
-$(document).on("dragend", function() {
-    lowerGrid();
-});
-
-chrome.runtime.onMessage.addListener(
-    function(message, sender, sendResponse) {
-        if (message.toggle) {
-            if (up) {
-                lowerGrid();
-            }
-            else {
-                raiseGrid();
-            }
-            up = !up;
-        }
-        else if (message.row) {
-            setRowSyncStatus(message.row.id, message.row.syncState);
-        }
-    }
-);*/

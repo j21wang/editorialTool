@@ -1,83 +1,61 @@
-var messageGenerator = {
-    displaySchema: function() {
-        debugger;
-        var schemaRow = $("#schema");
-        var back = chrome.extension.getBackgroundPage();
-        var labels = back.getSchemaLabels();
-        for (idx in labels) {
-            var lab = labels[idx];
-            var newColumn = $("<td>");
-            newColumn.attr('schemaId', lab.id);
-            schemaRow.append(newColumn);
-            newColumn.append(lab.name);
-            newColumn.on('click', messageGenerator.addColumnWidgetOnClick)
-        }
-    },
-    addColumnWidget: function(target) {
-        if (target.attr('id') == 'add') {
-            var newColumn = $("<td>");
-            target.before(newColumn);
-            target = newColumn;
-        }
-        var newTextBox = $("<input id='schemaLabelInput'>");
-        var schemaId = target.attr('schemaId');
-        if (!(schemaId === undefined)) newTextBox.attr('schemaId', schemaId);
-        newTextBox.val(target.text());
-        newTextBox.attr('original', target.text());
-        target.text('');
-        target.append(newTextBox);
-        newTextBox.on('change', messageGenerator.removeColumnWdiget);
-        newTextBox.on('keypress', messageGenerator.removeColumnWidget);
-        newTextBox.focus();
-    },
-    conditionallyAddColumnWidgetOnType: function(evt) {
-        if ($("#schemaLabelInput").length) return;
-        messageGenerator.addColumnWidget($("#add"));
-    },
-    addColumnWidgetOnClick: function(evt) {
-        if ($("#schemaLabelInput").length) return;
-        messageGenerator.addColumnWidget($(evt.target));
-    },
-    removeColumnWidget: function(evt) {
-        evt.cancelBubble = true;
-        if (evt.type == 'keypress' && evt.keyCode != 13) return;
-        var target = $(evt.target);
-        var parent = target.parent();
-        var schemaId = target.attr('schemaId');
+$(document).ready(function(){
 
-        if (schemaId === undefined) {
-            var id = messageGenerator.addSchemaName(target.val());
-            if (id === null) {
-                parent.remove();
-                return;
-            }
-            parent.attr('schemaId', id);
+    select.loadTables();
+    var selectedTable = $("#tables").val();
+    select.getTableData(selectedTable);
+
+    $("#tables").change(function(){
+        selectedTable = $("#tables").val();
+        select.getTableData(selectedTable);
+    });
+
+});
+
+var select = {
+
+   getRequest: function(params){
+        var xhr = new XMLHttpRequest();
+        xhr.onload = this.showTables();
+        xhr.open("GET", "http://researchvm-5.cs.rutgers.edu/index.php", false);
+        xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        xhr.send(params);
+        return xhr.responseText;
+   },
+
+   postRequest: function(params){
+        var xhr = new XMLHttpRequest();
+        xhr.onload = this.showTables();
+        xhr.open("POST", "http://researchvm-5.cs.rutgers.edu/index.php", false);
+        xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        xhr.send(params);
+        return xhr.responseText;
+   },
+   
+   getTableData: function(selectedTable){
+        var params = "selectedTable="+selectedTable;
+        params = params + "&search=Search";
+        var response = this.postRequest(params);
+        console.log(response);
+   },
+
+   showTables: function(evt){
+   },
+
+   loadTables: function(){
+        var params = "getTables=GetTables";    
+        var response = this.postRequest(params);
+        this.parseData(response);
+   },
+
+   parseData: function(response){
+        var textEntries = $(response).find('editorialTool');
+        console.log(textEntries);
+        for(var i=0; i<textEntries.prevObject.length; i++){
+            console.log(textEntries.prevObject[i]);
         }
-        else if (!messageGenerator.updateSchemaName(schemaId, target.val()))
-            target.val(target.attr("original"));
+   },
 
-        parent.on('click', messageGenerator.addColumnWidgetOnClick);
-        parent.append(target.val());
-        target.remove();
-    },
-    addSchemaName: function(name) {
-        return chrome.extension.getBackgroundPage().addColumn(name);
-    },
-    updateSchemaName: function(schemaId, name) {
-        return chrome.extension.getBackgroundPage().renameColumn(schemaId, name);
-    },
-    displayAddColumnWidget: function() {
-        var schemaRow = $("#schema");
-        var newColumn = $("<td id='add'>");
-        newColumn.append("+");
-        schemaRow.append(newColumn);
-        newColumn.on('click', messageGenerator.addColumnWidgetOnClick);
-        $("body").on('keydown', messageGenerator.conditionallyAddColumnWidgetOnType);
-    }
-};
-
-$(document).ready(function () {
-                            messageGenerator.displaySchema();
-                            messageGenerator.displayAddColumnWidget();
-                          }
-                  );
+   initialSelect: function(){
+        this.getRequest(params);
+   }
+}

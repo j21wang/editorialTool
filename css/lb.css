@@ -1,15 +1,15 @@
-/*body {
+body {
     font: 62.5% "Trebuchet MS", sans-serif;
     margin: 50px;
-}*/
+}
 
-.cart{
+/*.cart{
     width:100%;
     height:100%;
     opacity:0.9;
-}
+}*/
 
-/*.lightboxBack {
+.lightboxBack {
     display:none;
     background:#000000;
     opacity:0.9;
@@ -128,4 +128,4 @@
 *.over {
     width:105px;
     height:30px;
-}*/
+}

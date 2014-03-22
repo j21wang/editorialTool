@@ -3,23 +3,19 @@
   <head>
     <title>Getting Started Extension's Popup</title>
     <style>
-      body {
-        min-width: 357px;
-      }
-        table {
-            border-collapse: collapse;
-        }
-        table, td {
-            border: 1px solid black;
+        #tables{
+            width:200px;
+            height:200px;
         }
     </style>
     <script src="js/jquery-2.0.2.min.js"></script>
     <script src="js/popup.js"></script>
   </head>
   <body>
-      <table>
-          <tr id="schema"></tr>
-      </table>
+      <select id="tables" multiple="multiple">
+          <option selected="selected" value="selected">selected</option>
+          <option value="movies">movies</option>
+      </select>
   </body>
 </html>
 

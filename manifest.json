@@ -2,14 +2,14 @@
 	"manifest_version": 2,
 	"name": "Editorial Tool",
 	"description": "This extension permits a user to add web page content to a universal database.",
-	"version": "1.0",
+	"version": "0.1",
 	"permissions": [
         "tabs",
         "http://*/*",
         "https://*/*"
     ],
 	"browser_action": {
-		//"default_popup": "popup.html",
+		"default_popup": "popup.html",
 		"default_icon": "images/icon.png"
 	},
     "web_accessible_resources": [
@@ -21,12 +21,12 @@
     "content_scripts": [
         {
             "matches": ["http://*/*", "https://*/*"],
-            "css": ["css/lb.css", "css/tipped.css"],
-            "js": ["js/jquery-2.0.2.min.js", "js/tipped.css", "js/content.js"]
+            "css": ["css/lb.css"],
+            "js": ["js/jquery-2.0.2.min.js", "js/content.js"]
         }
     ],
     "permissions": [
-        "contentSettings",
-        "http://ec2-54-214-179-160.us-west-2.compute.amazonaws.com/"
+        "http://researchvm-5.cs.rutgers.edu/",
+        "tabs"
     ]
 }
