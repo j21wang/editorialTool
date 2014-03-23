@@ -135,19 +135,23 @@ function getSiblingNumber(queue){
 
 function findSimilarTags(queue){
     var i = 0;
-    var lastEqual;
+    var fowardLastEqual;
 
     //find the last equal tag all these elements have
     while(arraysEqual(queue[0][i],queue[1][i]) && arraysEqual(queue[0][i],queue[2][i])){
-        lastEqual = queue[0][i];
+        forwardLastEqual = queue[0][i];
         i++;
     }
-    console.log(lastEqual);
-    lastEqual = $(lastEqual[0] + ":eq(" + lastEqual[1] + ")");
-    var lastEqualChildren = $(lastEqual[0]).children();
+    forwardLastEqual = $(forwardLastEqual[0] + ":eq(" + forwardLastEqual[1] + ")");
+    var lastEqualChildren = $(forwardLastEqual[0]).children();
     var found;
+
+    // go through the rest of the tags that are different
     while(i < queue[0].length){
-        found = $(lastEqual[0]).find(queue[0][i][0]);
+        console.log(queue[0][i][0]);
+        console.log(queue[0][i][2]);
+        //found = $(forwardLastEqual[0]).children(); // we have the sibling numbers
+        found = $(forwardLastEqual[0]).find(queue[0][i][0]);
         console.log(found);
         i++;
     }
@@ -167,7 +171,7 @@ function findSimilarTags(queue){
             $(this).addClass("highlighted")
                              .css("background-color","yellow")
                              .css("opacity",0.8);
-        } /*else if(siblingNumber == -1){
+        } else if(siblingNumber == -1){
             //if sibling number for all 3 selected are different
             //then add all of them?
             similarElement = this;
@@ -177,44 +181,28 @@ function findSimilarTags(queue){
                              .css("background-color","yellow")
                              .css("opacity",0.8);
 
-        }*/
-        
+        }
     });
 
-    /*element = noIndexTagArr.shift();
-    ind = indexArr.shift();
-    selectedElement = $(element + ":eq(" + ind + ")");
-    console.log($(selectedElement[0]).siblings());
+    var add = confirm("Add to DB?");
+    if(add){
+        //add to db
+        console.log("Adding all to DB");
+        $(".highlighted").css("background-color",originalBackground)
+                         .removeClass("highlighted");
+        queue = [];
+    } else {
+        $(".highlighted").hover(function(){
+            individualAdd = confirm("Add this?");
+            if(individualAdd){
+                //add to db
+            } else {
+            }
+            $(this).css("background-color",originalBackground)
+                   .removeClass("highlighted");
 
-    var similarElement;
-    var originalBackground;
-    $($(selectedElement[0]).siblings()).each(function(){
-        similarElement = $(this).children()[selectedIndex];
-        originalBackground = $(similarElement).css("background-color"); 
-        console.log(originalBackground);
-        $(similarElement).addClass("highlighted")
-                         .css("background-color","yellow")
-                         .css("opacity",0.8);
-        
-    });
-        var add = confirm("Add to DB?");
-        if(add){
-            //add to db
-            console.log("Adding all to DB");
-            $(".highlighted").css("background-color",originalBackground)
-                             .removeClass("highlighted");
-        } else {
-            $(".highlighted").hover(function(){
-                individualAdd = confirm("Add this?");
-                if(individualAdd){
-                    //add to db
-                } else {
-                }
-                $(this).css("background-color",originalBackground)
-                       .removeClass("highlighted");
-
-            });
-        }*/
+        });
+    }
 }
 
 function loadXMLDoc(){
