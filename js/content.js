@@ -57,6 +57,7 @@ function highlight(){
                     }
                 } else {
                     if(e.which == 13){
+                        console.log(html);
                         addToList(html);
                         var pathToSelected = "/html/body//" + anchorNode.parentElement.localName + "[contains(.,'"+html+"')]";
                         var result = findSelectedTag(pathToSelected);
@@ -72,7 +73,6 @@ function highlight(){
                         }
                         //only have to findSimilarTags if 3 consec times
                         //findSimilarTags(pathToSelected,result);
-
                     }
                 }
             }
@@ -81,7 +81,6 @@ function highlight(){
 }
 
 function findSelectedTag(pathToSelected){
-    console.log(pathToSelected);
     var nodes = document.evaluate(pathToSelected, document, null, XPathResult.ANY_TYPE, null);
     var result = nodes.iterateNext();
     return result;
@@ -148,16 +147,15 @@ function findSimilarTags(queue){
 
     // go through the rest of the tags that are different
     while(i < queue[0].length){
-        console.log(queue[0][i][0]);
-        console.log(queue[0][i][2]);
+        //console.log(queue[0][i][0]);
+        //console.log(queue[0][i][2]);
         //found = $(forwardLastEqual[0]).children(); // we have the sibling numbers
         found = $(forwardLastEqual[0]).find(queue[0][i][0]);
-        console.log(found);
+        //console.log(found);
         i++;
     }
 
     var siblingNumber = getSiblingNumber(queue);
-    console.log(siblingNumber);
 
     //if sib number is the same
     var similarElement;
@@ -176,7 +174,6 @@ function findSimilarTags(queue){
             //then add all of them?
             similarElement = this;
             originalBackground = $(similarElement).css("background-color"); 
-            console.log(originalBackground);
             $(similarElement).addClass("highlighted")
                              .css("background-color","yellow")
                              .css("opacity",0.8);
@@ -186,13 +183,17 @@ function findSimilarTags(queue){
 
     var add = confirm("Add to DB?");
     if(add){
-        //add to db
+        $(".highlighted").each(function(){
+            var html = $(this).html();
+            addToList(html);
+        });
         console.log("Adding all to DB");
         $(".highlighted").css("background-color",originalBackground)
                          .removeClass("highlighted");
         queue = [];
     } else {
-        $(".highlighted").hover(function(){
+        $(".highlighted").hover(function(evt){
+            console.log(evt);
             individualAdd = confirm("Add this?");
             if(individualAdd){
                 //add to db
