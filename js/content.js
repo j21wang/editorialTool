@@ -29,11 +29,13 @@ function getSelectionHTML(sel){
     return container.innerHTML;
 }
 
+//This function checks if the last elements in the queues are the same element
 function checkQueue(queue){
     //needs to be more refined
+    console.log(queue[0].length);
     if(queue.length != 3) return false;
 
-    if(queue[0][0][0] == queue[1][0][0] && queue[0][0][0] == queue[2][0][0]){
+    if(queue[0][queue[0].length-1][0] == queue[1][queue[1].length-1][0] && queue[0][queue[0].length-1][0] == queue[2][queue[2].length-1][0]){
         return true;
     }
     return false;
@@ -57,20 +59,38 @@ function highlight(){
                     }
                 } else {
                     if(e.which == 13){
-                        console.log(html);
+                        //console.log(html);
                         addToList(html);
                         var pathToSelected = "/html/body//" + anchorNode.parentElement.localName + "[contains(.,'"+html+"')]";
                         var result = findSelectedTag(pathToSelected);
+                        console.log(result);
                         var tagArr = makeTagArr(pathToSelected,result);
+                        console.log(queue);
                         if(queue.length >= 3){
-                            queue.pop();
+                            queue.shift();
                         }
                         queue.push(tagArr);
-                        var isSimilar = checkQueue(queue);
+                        if(queue.length >= 3){
+                            var prefixArr = findSimilarPrefix(queue);
+                            console.log(prefixArr);
+                            for(var i=0; i<queue[0].length; i++){
+                                if(arraysEqual(queue[0][i],prefixArr[0])){
+                                    if(i/queue[0].length > 0.5){
+                                        console.log(queue[0][i]);
+                                        console.log(queue[0][queue[0].length-1]);
+                                        var selectedFirst = $(queue[0][i][0] + ":eq(" + queue[0][i][1] + ")");
+                                        console.log($(selectedFirst)[0]);
+                                        //maybe use xpath to see
+                                    }
+                                }
+                            }
+                        }
+
+                        /*var isSimilar = checkQueue(queue);
                         if(isSimilar){
                             findSimilarTags(queue);
                         } else {
-                        }
+                        }*/
                         //only have to findSimilarTags if 3 consec times
                         //findSimilarTags(pathToSelected,result);
                     }
@@ -103,8 +123,11 @@ function makeTagArr(pathToSelected,result){
         backwardsPath = backwardsPath + "/parent::*";
         var nodes = document.evaluate(backwardsPath, document, null, XPathResult.ANY_TYPE, null);
         var nodesResult = nodes.iterateNext();
+        console.log($(nodesResult));
         currentTagName = $(nodesResult).prop("tagName").toLowerCase();
+        console.log(currentTagName);
         siblingIndex = $(nodesResult).index(); //sibling number
+        console.log(siblingIndex);
         documentIndex = $(currentTagName).index(nodesResult); //whole document
         indexTagArr.unshift([currentTagName,documentIndex,siblingIndex]);
     }
@@ -132,6 +155,30 @@ function getSiblingNumber(queue){
    return -1;
 }
 
+function findSimilarPrefix(queue){
+    var i = 0;
+    var prefix;
+    var suffix;
+    var tagAfterPrefix;
+
+    console.log(queue);
+    var prefixArr = [];
+
+    for(var j=queue[0].length-1; j>=0; j--){
+         for(var k=queue[1].length-1; k>=0; k--){
+             for(var l=queue[2].length-1; l>=0; l--){
+                 if(queue[0][j][0] == queue[1][k][0] && queue[0][j][0] == queue[2][l][0] 
+                         && queue[0][j][2] == queue[1][k][2] && queue[0][j][2] == queue[2][l][2]){
+                     prefixArr.push(queue[0][j]);
+                     prefixArr.push(queue[1][k]);
+                     prefixArr.push(queue[2][l]);
+                     return prefixArr;
+                 }
+             }
+         }
+    }
+}
+
 function findSimilarTags(queue){
     var i = 0;
     var fowardLastEqual;
@@ -141,17 +188,17 @@ function findSimilarTags(queue){
         forwardLastEqual = queue[0][i];
         i++;
     }
+    //console.log(forwardLastEqual);
     forwardLastEqual = $(forwardLastEqual[0] + ":eq(" + forwardLastEqual[1] + ")");
+    //console.log(forwardLastEqual);
     var lastEqualChildren = $(forwardLastEqual[0]).children();
     var found;
 
     // go through the rest of the tags that are different
+    var ele = forwardLastEqual[0];
     while(i < queue[0].length){
-        //console.log(queue[0][i][0]);
-        //console.log(queue[0][i][2]);
-        //found = $(forwardLastEqual[0]).children(); // we have the sibling numbers
-        found = $(forwardLastEqual[0]).find(queue[0][i][0]);
-        //console.log(found);
+        found = $(ele).find(queue[0][i][0]);
+        ele = queue[0][i][0];
         i++;
     }
 
@@ -161,9 +208,9 @@ function findSimilarTags(queue){
     var similarElement;
     var originalBackground;
     $(found).each(function(){
-        console.log(this);
+        //console.log(this);
         var foundSibIndex = $(this).index(); //sibling number
-        console.log(foundSibIndex);
+        //console.log(foundSibIndex);
         if(foundSibIndex == siblingNumber){
             originalBackground = $(this).css("background-color"); 
             $(this).addClass("highlighted")
@@ -193,7 +240,7 @@ function findSimilarTags(queue){
         queue = [];
     } else {
         $(".highlighted").hover(function(evt){
-            console.log(evt);
+            //console.log(evt);
             individualAdd = confirm("Add this?");
             if(individualAdd){
                 //add to db
@@ -215,7 +262,7 @@ function loadXMLDoc(){
 
 function update(pageUrl, value, selectedTable){
     chrome.extension.sendMessage({message: [pageUrl, value, selectedTable]}, function(response){
-        console.log(response);
+        //console.log(response);
     });
 }
 
