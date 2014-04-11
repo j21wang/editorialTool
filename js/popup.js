@@ -2,6 +2,7 @@ $(document).ready(function(){
 
     select.loadTables();
     var selectedTable = $("#tables").val();
+    $("#list").dataTable();
     select.getTableData(selectedTable);
 
     $("#tables").change(function(){
@@ -40,8 +41,12 @@ var select = {
         var responseDiv = document.createElement("div");
         $(responseDiv).html(response);
         $(responseDiv).find('editorialTool').each(function(){
-            console.log($(this).text());
-            $("#tableText").append("<br>" + $(this).text());
+            var listItem = $(this).text();
+            var line = listItem.indexOf("|");
+            var selectedListItem = listItem.substring(0,line);
+            var urlListItem = listItem.substring(line+1);
+            $("#list").dataTable().fnAddData([selectedListItem,urlListItem]);
+            //$("#tableText").append("<br>" + $(this).text());
         });
    },
 

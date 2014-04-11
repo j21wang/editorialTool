@@ -31,17 +31,18 @@ chrome.extension.onMessage.addListener(
     });
 });*/
 
-chrome.windows.create({
+/*chrome.windows.create({
     type: 'panel',
     url: chrome.extension.getURL('../popup.html'),
     width: 400,
     height: 400
 }, function (newWindow){
+*/
     /*console.log(newWindow);
     chrome.tabs.executeScript(newWindow.tabs[0].id,{
         code: 'document.write("hello world");'
     });*/
-});
+//});
 
 /*chrome.tabs.onUpdated.addListener(function(tabId){
     chrome.pageAction.show(tabId);

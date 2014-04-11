@@ -32,7 +32,6 @@ function getSelectionHTML(sel){
 //This function checks if the last elements in the queues are the same element
 function checkQueue(queue){
     //needs to be more refined
-    console.log(queue[0].length);
     if(queue.length != 3) return false;
 
     if(queue[0][queue[0].length-1][0] == queue[1][queue[1].length-1][0] && queue[0][queue[0].length-1][0] == queue[2][queue[2].length-1][0]){
@@ -59,11 +58,9 @@ function highlight(){
                     }
                 } else {
                     if(e.which == 13){
-                        //console.log(html);
                         addToList(html);
                         var pathToSelected = "/html/body//" + anchorNode.parentElement.localName + "[contains(.,'"+html+"')]";
                         var result = findSelectedTag(pathToSelected);
-                        console.log(result);
                         var tagArr = makeTagArr(pathToSelected,result);
                         console.log(queue);
                         if(queue.length >= 3){
@@ -71,33 +68,140 @@ function highlight(){
                         }
                         queue.push(tagArr);
                         if(queue.length >= 3){
-                            var prefixArr = findSimilarPrefix(queue);
-                            console.log(prefixArr);
-                            for(var i=0; i<queue[0].length; i++){
-                                if(arraysEqual(queue[0][i],prefixArr[0])){
-                                    if(i/queue[0].length > 0.5){
-                                        console.log(queue[0][i]);
-                                        console.log(queue[0][queue[0].length-1]);
-                                        var selectedFirst = $(queue[0][i][0] + ":eq(" + queue[0][i][1] + ")");
-                                        console.log($(selectedFirst)[0]);
-                                        //maybe use xpath to see
+                            var prefixObject = findSimilarPrefix(queue);
+                            var isDifferent = checkSimilarTags(prefixObject.prefixArr);
+                            alert(isDifferent);
+                            if(!isDifferent){
+                                var prePrefixElement = prefixObject.prePrefixElement;
+                                console.log(prePrefixElement);
+                                var prefixArr = prefixObject.prefixArr;
+                                console.log(prefixArr);
+                                var prePrefix = $(prePrefixElement[0] + ":eq(" + prePrefixElement[1] + ")");
+                                console.log($(prePrefix)[0]);
+                                var foundSame = false;
+                                var elementsPathArr = [];
+                                console.log(prefixArr[0]);
+                                console.log(queue);
+                                for(var i=0; i<queue[0].length; i++){
+                                    var prePrefixTag = $($(prePrefix)[0]).prop("tagName").toLowerCase();
+                                    var queueTag = $(queue[0][i][0] + ":eq(" + queue[0][i][1] + ")");
+                                    console.log($(prePrefix)[0]);
+                                    console.log($(queueTag)[0]);
+                                    if(foundSame){
+                                        elementsPathArr.push(queue[0][i]);
+                                    }
+
+                                    if($(queueTag)[0] == $(prePrefix)[0]){
+                                        foundSame = true;
                                     }
                                 }
-                            }
-                        }
+                                console.log(elementsPathArr);
+                                console.log(prefixArr);
+                                var targetElement = $(prePrefix)[0];
+                                console.log(targetElement);
+                                var str = "";
+                                var siblingNumber;
+                                for(var i=0; i<elementsPathArr.length; i++){
+                                    var pre = $(prefixArr[0][0] + ":eq(" + prefixArr[0][1] + ")");
+                                    var ele = $(elementsPathArr[i][0] + ":eq(" + elementsPathArr[i][1] + ")");
+                                    console.log(pre);
+                                    console.log(ele);
+                                    //str = str + " > " + elementsPathArr[i][0];
+                                    str = str + " " + elementsPathArr[i][0];
+                                    if(pre[0] == ele[0]){
+                                        //str = str + ":nth-child("+(elementsPathArr[i-1][2]+1)+")";
+                                        //str = str + ":nth-child(0)";
+                                        alert("enters");
+                                        siblingNumber = elementsPathArr[i-1][2]+1;
+                                        str = str + ":nth-child("+siblingNumber+")";
+                                        console.log($(ele[0]));
+                                        console.log($(ele[0]).index());
+                                        break;
+                                    }
+                                    //str = str + " > " + elementsPathArr[i][0];
+                                }
 
-                        /*var isSimilar = checkQueue(queue);
-                        if(isSimilar){
-                            findSimilarTags(queue);
-                        } else {
-                        }*/
-                        //only have to findSimilarTags if 3 consec times
-                        //findSimilarTags(pathToSelected,result);
+                                var similarElementsArr = [];
+                                var originalBackground;
+                                $($(targetElement).find(str)).each(function(){
+                                    var tag = $($(this)[0]).prop("tagName").toLowerCase();
+                                    var siblingNum = $(this).index();
+                                    var found = $(this);
+                                    console.log(found);
+                                    originalBackground = $(this).css("background-color"); 
+                                    $(found).addClass("highlighted")
+                                            .css("background-color","yellow")
+                                            .css("opacity",0.8);
+
+                                });
+
+                                var add = confirm("Add to DB?");
+                                if(add){
+                                    $(".highlighted").each(function(){
+                                        var html = $(this).html();
+                                        addToList(html);
+                                    });
+                                    console.log("Adding all to DB");
+                                    $(".highlighted").css("background-color",originalBackground)
+                                                     .removeClass("highlighted");
+                                    queue = [];
+                                } else {
+                                    $(".highlighted").hover(function(evt){
+                                        individualAdd = confirm("Add this?");
+                                        if(individualAdd){
+                                            //add to db
+                                        } else {
+                                        }
+                                        $(this).css("background-color",originalBackground)
+                                               .removeClass("highlighted");
+                                    });
+                                }
+
+
+                            } else {
+                                //do nothing
+                            }
+                            
+                        }
                     }
                 }
             }
         }      
     });
+}
+
+function checkSimilarTags(prefixArr){
+    var isDifferent = false;
+    for(var i=0; i<queue[0].length; i++){
+        if(arraysEqual(queue[0][i],prefixArr[0]) && !isDifferent){
+            if(i/queue[0].length >= 0.5){
+                var selectedFirst = $(queue[0][i][0] + ":eq(" + queue[0][i][1] + ")");
+            } else {
+                isDifferent = true;
+            }
+        }
+    }
+
+    for(var i=0; i<queue[1].length; i++){
+        if(arraysEqual(queue[1][i],prefixArr[1]) && !isDifferent){
+            if(i/queue[1].length >= 0.5){
+                var selectedSecond = $(queue[1][i][0] + ":eq(" + queue[1][i][1] + ")");
+            } else {
+                isDifferent = true;
+            }
+        }
+    }
+
+    for(var i=0; i<queue[2].length; i++){
+        if(arraysEqual(queue[2][i],prefixArr[2]) && !isDifferent){
+            if(i/queue[2].length >= 0.5){
+                var selectedThird = $(queue[2][i][0] + ":eq(" + queue[2][i][1] + ")");
+            } else {
+                isDifferent = true;
+            } 
+        }
+    }
+    return isDifferent;
 }
 
 function findSelectedTag(pathToSelected){
@@ -123,11 +227,9 @@ function makeTagArr(pathToSelected,result){
         backwardsPath = backwardsPath + "/parent::*";
         var nodes = document.evaluate(backwardsPath, document, null, XPathResult.ANY_TYPE, null);
         var nodesResult = nodes.iterateNext();
-        console.log($(nodesResult));
+        console.log(nodesResult);
         currentTagName = $(nodesResult).prop("tagName").toLowerCase();
-        console.log(currentTagName);
         siblingIndex = $(nodesResult).index(); //sibling number
-        console.log(siblingIndex);
         documentIndex = $(currentTagName).index(nodesResult); //whole document
         indexTagArr.unshift([currentTagName,documentIndex,siblingIndex]);
     }
@@ -160,57 +262,53 @@ function findSimilarPrefix(queue){
     var prefix;
     var suffix;
     var tagAfterPrefix;
+    var entered = false;
 
-    console.log(queue);
+    var prePrefixElement;
     var prefixArr = [];
+    var firstLength;
+    var secondLength;
+    var thirdLength;
 
-    for(var j=queue[0].length-1; j>=0; j--){
-         for(var k=queue[1].length-1; k>=0; k--){
-             for(var l=queue[2].length-1; l>=0; l--){
+    if(queue[0][queue[0].length-1] == queue[1][queue[1].length-1] && queue[1][queue[1].length-1] == queue[2][queue[2].length-1]){
+        firstLength = queue[0].length;
+        secondLength = queue[1].length;
+        thirdLength = queue[2].length;
+    } else {
+        firstLength = queue[0].length-1;
+        secondLength = queue[1].length-1;
+        thirdLength = queue[2].length-1;
+    }
+
+    for(var j=firstLength; j>=0; j--){
+         for(var k=secondLength; k>=0; k--){
+             for(var l=thirdLength; l>=0; l--){
                  if(queue[0][j][0] == queue[1][k][0] && queue[0][j][0] == queue[2][l][0] 
-                         && queue[0][j][2] == queue[1][k][2] && queue[0][j][2] == queue[2][l][2]){
+                         && queue[0][j][2] == queue[1][k][2] && queue[0][j][2] == queue[2][l][2] && !entered){
                      prefixArr.push(queue[0][j]);
                      prefixArr.push(queue[1][k]);
                      prefixArr.push(queue[2][l]);
-                     return prefixArr;
+                     console.log(prefixArr);
+                     entered = true;
+
+                 }
+                 if(queue[0][j][0] == queue[1][k][0] && queue[0][j][0] == queue[2][l][0] 
+                         && queue[0][j][1] == queue[1][k][1] && queue[0][j][1] == queue[2][l][1]){
+                     prePrefixElement = queue[0][j];
+                     var prefixObject = {prePrefixElement: prePrefixElement, prefixArr: prefixArr};
+                     console.log(prefixObject);
+                     return prefixObject;
                  }
              }
          }
     }
 }
 
-function findSimilarTags(queue){
-    var i = 0;
-    var fowardLastEqual;
-
-    //find the last equal tag all these elements have
-    while(arraysEqual(queue[0][i],queue[1][i]) && arraysEqual(queue[0][i],queue[2][i])){
-        forwardLastEqual = queue[0][i];
-        i++;
-    }
-    //console.log(forwardLastEqual);
-    forwardLastEqual = $(forwardLastEqual[0] + ":eq(" + forwardLastEqual[1] + ")");
-    //console.log(forwardLastEqual);
-    var lastEqualChildren = $(forwardLastEqual[0]).children();
-    var found;
-
-    // go through the rest of the tags that are different
-    var ele = forwardLastEqual[0];
-    while(i < queue[0].length){
-        found = $(ele).find(queue[0][i][0]);
-        ele = queue[0][i][0];
-        i++;
-    }
-
-    var siblingNumber = getSiblingNumber(queue);
-
     //if sib number is the same
-    var similarElement;
+    /*var similarElement;
     var originalBackground;
     $(found).each(function(){
-        //console.log(this);
         var foundSibIndex = $(this).index(); //sibling number
-        //console.log(foundSibIndex);
         if(foundSibIndex == siblingNumber){
             originalBackground = $(this).css("background-color"); 
             $(this).addClass("highlighted")
@@ -240,7 +338,6 @@ function findSimilarTags(queue){
         queue = [];
     } else {
         $(".highlighted").hover(function(evt){
-            //console.log(evt);
             individualAdd = confirm("Add this?");
             if(individualAdd){
                 //add to db
@@ -250,8 +347,7 @@ function findSimilarTags(queue){
                    .removeClass("highlighted");
 
         });
-    }
-}
+    }*/
 
 function loadXMLDoc(){
     var xhr = new XMLHttpRequest();
