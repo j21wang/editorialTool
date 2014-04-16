@@ -1,8 +1,10 @@
 var queue = new Array();
 var tagIndexArr = new Array();
 
-$(document).mouseup(function(e){
-    highlight();
+$(document).keypress(function(e){
+    if(e.which == 13){
+        highlight(e);
+    }
 });
 
 function resetSelection(){
@@ -40,134 +42,130 @@ function checkQueue(queue){
     return false;
 }
 
-function highlight(){
-    $(document).one("keydown",function(e){
+function checkForApostrophes(text){
+    var apostropheIndex = text.indexOf("'");
+    if(apostropheIndex != -1){
+        text = text.substring(0,apostropheIndex) + "&apos" + text.substring(apostropheIndex+1);
+    }
+    console.log(text);
+    return text;
+}
 
-        var html = "";
-        if (window.getSelection) {
+function highlight(e){
 
-            var selection = window.getSelection();
-            if (selection.rangeCount) {
-                var html = getSelectionHTML(selection);
-                var anchorNode = selection.anchorNode;
+    var html = "";
+    if (window.getSelection().toString() != "") {
 
-                if(html.indexOf('<img') != -1){
-                    var src = $(html).attr("src");
-                    if(e.which == 13){
-                        addToList(src);
-                    }
-                } else {
-                    if(e.which == 13){
-                        addToList(html);
-                        var pathToSelected = "/html/body//" + anchorNode.parentElement.localName + "[contains(.,'"+html+"')]";
-                        var result = findSelectedTag(pathToSelected);
-                        var tagArr = makeTagArr(pathToSelected,result);
-                        console.log(queue);
-                        if(queue.length >= 3){
-                            queue.shift();
+    var selection = window.getSelection();
+    console.log(selection);
+    console.log(selection.anchorNode);
+    console.log(selection.extentNode);
+    if (selection.rangeCount && selection.anchorNode == selection.extentNode) {
+        var html = getSelectionHTML(selection);
+        html = checkForApostrophes(html);
+        console.log(html);
+        var anchorNode = selection.anchorNode;
+
+        if(html.indexOf('<img') != -1){
+            var src = $(html).attr("src");
+            if(e.which == 13){
+                addToList(src);
+            }
+        } else {
+            addToList(html);
+            console.log(html);
+            var pathToSelected = "/html/body//" + anchorNode.parentElement.localName + "[contains(.,'"+html+"')]";
+            var result = findSelectedTag(pathToSelected);
+            var tagArr = makeTagArr(pathToSelected,result);
+            if(queue.length >= 3){
+                queue.shift();
+            }
+            queue.push(tagArr);
+            if(queue.length >= 3){
+                var prefixObject = findSimilarPrefix(queue);
+                var isDifferent = checkSimilarTags(prefixObject.prefixArr);
+                if(!isDifferent){
+                    var prePrefixElement = prefixObject.prePrefixElement;
+                    var prefixArr = prefixObject.prefixArr;
+                    var prePrefix = $(prePrefixElement[0] + ":eq(" + prePrefixElement[1] + ")");
+                    var foundSame = false;
+                    var elementsPathArr = [];
+                    for(var i=0; i<queue[0].length; i++){
+                        var prePrefixTag = $($(prePrefix)[0]).prop("tagName").toLowerCase();
+                        var queueTag = $(queue[0][i][0] + ":eq(" + queue[0][i][1] + ")");
+                        if(foundSame){
+                            elementsPathArr.push(queue[0][i]);
                         }
-                        queue.push(tagArr);
-                        if(queue.length >= 3){
-                            var prefixObject = findSimilarPrefix(queue);
-                            var isDifferent = checkSimilarTags(prefixObject.prefixArr);
-                            alert(isDifferent);
-                            if(!isDifferent){
-                                var prePrefixElement = prefixObject.prePrefixElement;
-                                console.log(prePrefixElement);
-                                var prefixArr = prefixObject.prefixArr;
-                                console.log(prefixArr);
-                                var prePrefix = $(prePrefixElement[0] + ":eq(" + prePrefixElement[1] + ")");
-                                console.log($(prePrefix)[0]);
-                                var foundSame = false;
-                                var elementsPathArr = [];
-                                console.log(prefixArr[0]);
-                                console.log(queue);
-                                for(var i=0; i<queue[0].length; i++){
-                                    var prePrefixTag = $($(prePrefix)[0]).prop("tagName").toLowerCase();
-                                    var queueTag = $(queue[0][i][0] + ":eq(" + queue[0][i][1] + ")");
-                                    console.log($(prePrefix)[0]);
-                                    console.log($(queueTag)[0]);
-                                    if(foundSame){
-                                        elementsPathArr.push(queue[0][i]);
-                                    }
 
-                                    if($(queueTag)[0] == $(prePrefix)[0]){
-                                        foundSame = true;
-                                    }
-                                }
-                                console.log(elementsPathArr);
-                                console.log(prefixArr);
-                                var targetElement = $(prePrefix)[0];
-                                console.log(targetElement);
-                                var str = "";
-                                var siblingNumber;
-                                for(var i=0; i<elementsPathArr.length; i++){
-                                    var pre = $(prefixArr[0][0] + ":eq(" + prefixArr[0][1] + ")");
-                                    var ele = $(elementsPathArr[i][0] + ":eq(" + elementsPathArr[i][1] + ")");
-                                    console.log(pre);
-                                    console.log(ele);
-                                    //str = str + " > " + elementsPathArr[i][0];
-                                    str = str + " " + elementsPathArr[i][0];
-                                    if(pre[0] == ele[0]){
-                                        //str = str + ":nth-child("+(elementsPathArr[i-1][2]+1)+")";
-                                        //str = str + ":nth-child(0)";
-                                        alert("enters");
-                                        siblingNumber = elementsPathArr[i-1][2]+1;
-                                        str = str + ":nth-child("+siblingNumber+")";
-                                        console.log($(ele[0]));
-                                        console.log($(ele[0]).index());
-                                        break;
-                                    }
-                                    //str = str + " > " + elementsPathArr[i][0];
-                                }
+                        if($(queueTag)[0] == $(prePrefix)[0]){
+                            foundSame = true;
+                        }
+                    }
+                    var targetElement = $(prePrefix)[0];
+                    var str = "";
+                    var siblingNumber;
+                    for(var i=0; i<elementsPathArr.length; i++){
+                        var pre = $(prefixArr[0][0] + ":eq(" + prefixArr[0][1] + ")");
+                        var ele = $(elementsPathArr[i][0] + ":eq(" + elementsPathArr[i][1] + ")");
+                        str = str + " > " + elementsPathArr[i][0];
+                        //str = str + " " + elementsPathArr[i][0];
+                        if(pre[0] == ele[0]){
+                            //str = str + ":nth-child("+(elementsPathArr[i-1][2]+1)+")";
+                            //str = str + ":nth-child(0)";
+                            alert("enters");
+                            console.log(elementsPathArr);
+                            siblingNumber = elementsPathArr[i-1][2]+1;
+                            str = str + ":nth-child("+siblingNumber+")";
+                            console.log(str);
+                            break;
+                        }
+                        //str = str + " > " + elementsPathArr[i][0];
+                    }
 
-                                var similarElementsArr = [];
-                                var originalBackground;
-                                $($(targetElement).find(str)).each(function(){
-                                    var tag = $($(this)[0]).prop("tagName").toLowerCase();
-                                    var siblingNum = $(this).index();
-                                    var found = $(this);
-                                    console.log(found);
-                                    originalBackground = $(this).css("background-color"); 
-                                    $(found).addClass("highlighted")
-                                            .css("background-color","yellow")
-                                            .css("opacity",0.8);
+                    var similarElementsArr = [];
+                    var originalBackground;
+                    $($(targetElement).find(str)).each(function(){
+                        var tag = $($(this)[0]).prop("tagName").toLowerCase();
+                        var siblingNum = $(this).index();
+                        var found = $(this);
+                        originalBackground = $(this).css("background-color"); 
+                        $(found).addClass("highlighted")
+                                .css("background-color","yellow")
+                                .css("opacity",0.8);
 
-                                });
+                    });
 
-                                var add = confirm("Add to DB?");
-                                if(add){
-                                    $(".highlighted").each(function(){
-                                        var html = $(this).html();
-                                        addToList(html);
-                                    });
-                                    console.log("Adding all to DB");
-                                    $(".highlighted").css("background-color",originalBackground)
-                                                     .removeClass("highlighted");
-                                    queue = [];
-                                } else {
-                                    $(".highlighted").hover(function(evt){
-                                        individualAdd = confirm("Add this?");
-                                        if(individualAdd){
-                                            //add to db
-                                        } else {
-                                        }
-                                        $(this).css("background-color",originalBackground)
-                                               .removeClass("highlighted");
-                                    });
-                                }
-
-
+                    /*var add = confirm("Add to DB?");
+                    if(add){
+                        $(".highlighted").each(function(){
+                            var html = $(this).html();
+                            addToList(html);
+                        });
+                        console.log("Adding all to DB");
+                        $(".highlighted").css("background-color",originalBackground)
+                                         .removeClass("highlighted");
+                        queue = [];
+                    } else {
+                        $(".highlighted").hover(function(evt){
+                            individualAdd = confirm("Add this?");
+                            if(individualAdd){
+                                //add to db
                             } else {
-                                //do nothing
                             }
-                            
-                        }
+                            $(this).css("background-color",originalBackground)
+                                   .removeClass("highlighted");
+                        });
+                    }*/
+
+
+                    } else {
+                        //do nothing
                     }
+                
                 }
             }
-        }      
-    });
+        }
+    }      
 }
 
 function checkSimilarTags(prefixArr){
@@ -205,6 +203,7 @@ function checkSimilarTags(prefixArr){
 }
 
 function findSelectedTag(pathToSelected){
+    console.log(pathToSelected);
     var nodes = document.evaluate(pathToSelected, document, null, XPathResult.ANY_TYPE, null);
     var result = nodes.iterateNext();
     return result;
@@ -213,6 +212,7 @@ function findSelectedTag(pathToSelected){
 function makeTagArr(pathToSelected,result){
     var backwardsPath = pathToSelected;
     var originalTagName = $(result).prop("tagName");
+    console.log(originalTagName);
     var currentTagName = $(result).prop("tagName").toLowerCase();
     var siblingIndex = $(result).index();
     var documentIndex = $(currentTagName).index(result);
@@ -227,7 +227,6 @@ function makeTagArr(pathToSelected,result){
         backwardsPath = backwardsPath + "/parent::*";
         var nodes = document.evaluate(backwardsPath, document, null, XPathResult.ANY_TYPE, null);
         var nodesResult = nodes.iterateNext();
-        console.log(nodesResult);
         currentTagName = $(nodesResult).prop("tagName").toLowerCase();
         siblingIndex = $(nodesResult).index(); //sibling number
         documentIndex = $(currentTagName).index(nodesResult); //whole document
@@ -288,7 +287,6 @@ function findSimilarPrefix(queue){
                      prefixArr.push(queue[0][j]);
                      prefixArr.push(queue[1][k]);
                      prefixArr.push(queue[2][l]);
-                     console.log(prefixArr);
                      entered = true;
 
                  }
@@ -296,7 +294,6 @@ function findSimilarPrefix(queue){
                          && queue[0][j][1] == queue[1][k][1] && queue[0][j][1] == queue[2][l][1]){
                      prePrefixElement = queue[0][j];
                      var prefixObject = {prePrefixElement: prePrefixElement, prefixArr: prefixArr};
-                     console.log(prefixObject);
                      return prefixObject;
                  }
              }
@@ -358,7 +355,6 @@ function loadXMLDoc(){
 
 function update(pageUrl, value, selectedTable){
     chrome.extension.sendMessage({message: [pageUrl, value, selectedTable]}, function(response){
-        //console.log(response);
     });
 }
 

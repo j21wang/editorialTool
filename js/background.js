@@ -4,6 +4,7 @@ function startWorker(){
 }
 
 function postToDB(message){
+    console.log(message);
     worker.postMessage(message);
 }
 

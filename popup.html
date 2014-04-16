@@ -5,27 +5,47 @@
     <style>
         #tables{
             width:400px;
-            height:200px;
         }
         #tableText{
             width:400px;
-            height:200px;
+        }
+        .dataTable td{
+            max-width:200px;
+            min-width:200px;
+            overflow:hidden;
+            text-overflow: ellipsis;
+            white-space:nowrap;
         }
     </style>
     <link rel="stylesheet" type="text/css" href="lib/datatables/media/css/jquery.dataTables.css" />
+    <link rel="stylesheet" type="text/css" href="lib/sidr/dist/stylesheets/jquery.sidr.dark.css" />
     <script type="text/javascript" src="js/jquery-2.0.2.min.js"></script>
     <script type="text/javascript" src="js/popup.js"></script>
     <script type="text/javascript" src="lib/datatables/media/js/jquery.dataTables.js"></script> 
+    <script type="text/javascript" src="lib/sidr/dist/jquery.sidr.js"></script>
   </head>
   <body>
       <select id="tables" multiple>
       </select>
+      <button id="createTable">New Table</button>
+      <button id="deleteTable">Delete Table</button>
+      <!--<a id="simple-menu" href="#sidr">Toggle menu</a>
+      <div id="sidr">
+          <ul>
+              <li><a href="#">List 1</a></li>
+              <li class="active"><a href="#">List 2</a></li>
+              <li><a href="#">List 3</a></li>
+          </ul>
+      </div>-->
+      <hr>
       <table id="list" cellpadding="0" cellspacing="0" border="0" class="display" width="100%">
           <thead>
               <th> Selected </th>
               <th> URL </th>
           </thead>
       </table>
+      <br>
+      <button id="deleteEntry">Delete Entry</button>
       <div id="tableText"></div>
   </body>
 </html>
