@@ -56,116 +56,141 @@ function highlight(e){
     var html = "";
     if (window.getSelection().toString() != "") {
 
-    var selection = window.getSelection();
-    console.log(selection);
-    console.log(selection.anchorNode);
-    console.log(selection.extentNode);
-    if (selection.rangeCount && selection.anchorNode == selection.extentNode) {
-        var html = getSelectionHTML(selection);
-        html = checkForApostrophes(html);
-        console.log(html);
-        var anchorNode = selection.anchorNode;
-
-        if(html.indexOf('<img') != -1){
-            var src = $(html).attr("src");
-            if(e.which == 13){
-                addToList(src);
-            }
-        } else {
-            addToList(html);
+        var selection = window.getSelection();
+        console.log(selection);
+        console.log(selection.anchorNode);
+        console.log(selection.extentNode);
+        //if (selection.rangeCount && selection.anchorNode == selection.extentNode) {
+        if (selection.rangeCount){
+            var html = getSelectionHTML(selection);
+            html = checkForApostrophes(html);
             console.log(html);
-            var pathToSelected = "/html/body//" + anchorNode.parentElement.localName + "[contains(.,'"+html+"')]";
-            var result = findSelectedTag(pathToSelected);
-            var tagArr = makeTagArr(pathToSelected,result);
-            if(queue.length >= 3){
-                queue.shift();
-            }
-            queue.push(tagArr);
-            if(queue.length >= 3){
-                var prefixObject = findSimilarPrefix(queue);
-                var isDifferent = checkSimilarTags(prefixObject.prefixArr);
-                if(!isDifferent){
-                    var prePrefixElement = prefixObject.prePrefixElement;
-                    var prefixArr = prefixObject.prefixArr;
-                    var prePrefix = $(prePrefixElement[0] + ":eq(" + prePrefixElement[1] + ")");
-                    var foundSame = false;
-                    var elementsPathArr = [];
-                    for(var i=0; i<queue[0].length; i++){
-                        var prePrefixTag = $($(prePrefix)[0]).prop("tagName").toLowerCase();
-                        var queueTag = $(queue[0][i][0] + ":eq(" + queue[0][i][1] + ")");
-                        if(foundSame){
-                            elementsPathArr.push(queue[0][i]);
-                        }
+            var anchorNode = selection.anchorNode;
 
-                        if($(queueTag)[0] == $(prePrefix)[0]){
-                            foundSame = true;
-                        }
-                    }
-                    var targetElement = $(prePrefix)[0];
-                    var str = "";
-                    var siblingNumber;
-                    for(var i=0; i<elementsPathArr.length; i++){
-                        var pre = $(prefixArr[0][0] + ":eq(" + prefixArr[0][1] + ")");
-                        var ele = $(elementsPathArr[i][0] + ":eq(" + elementsPathArr[i][1] + ")");
-                        str = str + " > " + elementsPathArr[i][0];
-                        //str = str + " " + elementsPathArr[i][0];
-                        if(pre[0] == ele[0]){
-                            //str = str + ":nth-child("+(elementsPathArr[i-1][2]+1)+")";
-                            //str = str + ":nth-child(0)";
-                            alert("enters");
-                            console.log(elementsPathArr);
-                            siblingNumber = elementsPathArr[i-1][2]+1;
-                            str = str + ":nth-child("+siblingNumber+")";
-                            console.log(str);
-                            break;
-                        }
-                        //str = str + " > " + elementsPathArr[i][0];
-                    }
+            if(html.indexOf('<img') != -1){
+                var src = $(html).attr("src");
+                addToList(src);
 
-                    var similarElementsArr = [];
-                    var originalBackground;
-                    $($(targetElement).find(str)).each(function(){
-                        var tag = $($(this)[0]).prop("tagName").toLowerCase();
-                        var siblingNum = $(this).index();
-                        var found = $(this);
-                        originalBackground = $(this).css("background-color"); 
-                        $(found).addClass("highlighted")
-                                .css("background-color","yellow")
-                                .css("opacity",0.8);
+            } else {
 
-                    });
-
-                    /*var add = confirm("Add to DB?");
-                    if(add){
-                        $(".highlighted").each(function(){
-                            var html = $(this).html();
-                            addToList(html);
-                        });
-                        console.log("Adding all to DB");
-                        $(".highlighted").css("background-color",originalBackground)
-                                         .removeClass("highlighted");
-                        queue = [];
-                    } else {
-                        $(".highlighted").hover(function(evt){
-                            individualAdd = confirm("Add this?");
-                            if(individualAdd){
-                                //add to db
-                            } else {
+                addToList(html);
+                var pathToSelected = "/html/body//" + anchorNode.parentElement.localName + "[contains(.,'"+html+"')]";
+                var result = findSelectedTag(pathToSelected);
+                var tagArr = makeTagArr(pathToSelected,result);
+                if(queue.length >= 3){
+                    queue = [];
+                }
+                queue.push(tagArr);
+                if(queue.length >= 3){
+                    var prefixObject = findSimilarPrefix(queue);
+                    var isDifferent = checkSimilarTags(prefixObject.prefixArr);
+                    if(!isDifferent){
+                        var prePrefixElement = prefixObject.prePrefixElement;
+                        var prefixArr = prefixObject.prefixArr;
+                        var prePrefix = $(prePrefixElement[0] + ":eq(" + prePrefixElement[1] + ")");
+                        var sameElement = prefixObject.sameElement;
+                        var foundSame = false;
+                        var elementsPathArr = [];
+                        for(var i=0; i<queue[0].length; i++){
+                            var prePrefixTag = $($(prePrefix)[0]).prop("tagName").toLowerCase();
+                            var queueTag = $(queue[0][i][0] + ":eq(" + queue[0][i][1] + ")");
+                            if(foundSame){
+                                elementsPathArr.push(queue[0][i]);
                             }
-                            $(this).css("background-color",originalBackground)
-                                   .removeClass("highlighted");
-                        });
-                    }*/
 
-
+                            if($(queueTag)[0] == $(prePrefix)[0]){
+                                foundSame = true;
+                            }
+                        }
+                        var targetElement = $(prePrefix)[0];
+                        var path = findSimilar(targetElement,elementsPathArr,prefixObject);
+                        highlightSimilar(targetElement,path);
                     } else {
                         //do nothing
                     }
-                
                 }
             }
         }
     }      
+}
+
+function addAllToDB(originalBackground){
+    var add = confirm("Add to DB?");
+    if(add){
+        $(".highlighted").each(function(){
+            var html = $(this).html();
+            addToList(html);
+        });
+        console.log("Adding all to DB");
+        $(".highlighted").css("background-color",originalBackground)
+                         .removeClass("highlighted");
+        queue = [];
+    } else {
+        /*$(".highlighted").hover(function(evt){
+            setTimeout(function(){
+                individualAdd = confirm("Add this?");
+                if(individualAdd){
+                    addToList($(this).html());
+                    $(this).css("background-color",originalBackground)
+                           .removeClass("highlighted");
+                } else {
+                    $(this).css("background-color",originalBackground)
+                           .removeClass("highlighted");
+                    return;
+                }
+            }, 2000);
+        });*/
+        $(".highlighted").click(function(evt){
+            setTimeout(function(){ //find a better way to add to db
+                //addToList($(this).html());
+                console.log($(this));
+                $(this).css("background-color",originalBackground)
+                       .removeClass("highlighted");
+            }, 2000);
+        });
+    }
+}
+
+function findSimilar(targetElement,elementsPathArr,prefixObject){
+    var path = "";
+    var siblingNumber;
+    var prefixArr = prefixObject.prefixArr;
+    var sameElement = prefixObject.sameElement;
+    for(var i=0; i<elementsPathArr.length; i++){
+        var pre = $(prefixArr[0][0] + ":eq(" + prefixArr[0][1] + ")");
+        var ele = $(elementsPathArr[i][0] + ":eq(" + elementsPathArr[i][1] + ")");
+        path = path + " > " + elementsPathArr[i][0];
+        if(pre[0] == ele[0]){
+            if(!sameElement){ // not the same element
+                siblingNumber = elementsPathArr[i-1][2]+1;
+            } else { // same element
+                siblingNumber = elementsPathArr[i][2]+1;
+            }
+            path = path + ":nth-child("+siblingNumber+")";
+            console.log(path);
+            break;
+        }
+    }
+    return path;
+}
+
+function highlightSimilar(targetElement,str){
+    var similarElementsArr = [];
+    var originalBackground;
+    console.log($(targetElement));
+    $($(targetElement).find(str)).each(function(){
+        var tag = $($(this)[0]).prop("tagName").toLowerCase();
+        var siblingNum = $(this).index();
+        var found = $(this);
+        console.log(found);
+        originalBackground = $(this).css("background-color"); 
+        $(found).addClass("highlighted")
+                .css("background-color","yellow")
+                .css("border-radius","5px")
+                .css("opacity",0.8);
+
+    });
+    addAllToDB(originalBackground); 
 }
 
 function checkSimilarTags(prefixArr){
@@ -265,18 +290,22 @@ function findSimilarPrefix(queue){
 
     var prePrefixElement;
     var prefixArr = [];
+    var sameElement = false;
     var firstLength;
     var secondLength;
     var thirdLength;
 
-    if(queue[0][queue[0].length-1] == queue[1][queue[1].length-1] && queue[1][queue[1].length-1] == queue[2][queue[2].length-1]){
-        firstLength = queue[0].length;
-        secondLength = queue[1].length;
-        thirdLength = queue[2].length;
+    if(queue[0][queue[0].length-1][0] == queue[1][queue[1].length-1][0] && queue[1][queue[1].length-1][0] == queue[2][queue[2].length-1][0]
+            && queue[0][queue[0].length-1][2] == queue[1][queue[1].length-1][2] && queue[1][queue[1].length-1][2] == queue[2][queue[2].length-1][2]){
+        firstLength = queue[0].length-1;
+        secondLength = queue[1].length-1;
+        thirdLength = queue[2].length-1;
+        sameElement = true;
     } else {
         firstLength = queue[0].length-1;
         secondLength = queue[1].length-1;
         thirdLength = queue[2].length-1;
+        sameElement = false;
     }
 
     for(var j=firstLength; j>=0; j--){
@@ -293,58 +322,13 @@ function findSimilarPrefix(queue){
                  if(queue[0][j][0] == queue[1][k][0] && queue[0][j][0] == queue[2][l][0] 
                          && queue[0][j][1] == queue[1][k][1] && queue[0][j][1] == queue[2][l][1]){
                      prePrefixElement = queue[0][j];
-                     var prefixObject = {prePrefixElement: prePrefixElement, prefixArr: prefixArr};
+                     var prefixObject = {prePrefixElement: prePrefixElement, prefixArr: prefixArr, sameElement: sameElement};
                      return prefixObject;
                  }
              }
          }
     }
 }
-
-    //if sib number is the same
-    /*var similarElement;
-    var originalBackground;
-    $(found).each(function(){
-        var foundSibIndex = $(this).index(); //sibling number
-        if(foundSibIndex == siblingNumber){
-            originalBackground = $(this).css("background-color"); 
-            $(this).addClass("highlighted")
-                             .css("background-color","yellow")
-                             .css("opacity",0.8);
-        } else if(siblingNumber == -1){
-            //if sibling number for all 3 selected are different
-            //then add all of them?
-            similarElement = this;
-            originalBackground = $(similarElement).css("background-color"); 
-            $(similarElement).addClass("highlighted")
-                             .css("background-color","yellow")
-                             .css("opacity",0.8);
-
-        }
-    });
-
-    var add = confirm("Add to DB?");
-    if(add){
-        $(".highlighted").each(function(){
-            var html = $(this).html();
-            addToList(html);
-        });
-        console.log("Adding all to DB");
-        $(".highlighted").css("background-color",originalBackground)
-                         .removeClass("highlighted");
-        queue = [];
-    } else {
-        $(".highlighted").hover(function(evt){
-            individualAdd = confirm("Add this?");
-            if(individualAdd){
-                //add to db
-            } else {
-            }
-            $(this).css("background-color",originalBackground)
-                   .removeClass("highlighted");
-
-        });
-    }*/
 
 function loadXMLDoc(){
     var xhr = new XMLHttpRequest();
