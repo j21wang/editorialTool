@@ -47,107 +47,129 @@ function checkForApostrophes(text){
     if(apostropheIndex != -1){
         text = text.substring(0,apostropheIndex) + "&apos" + text.substring(apostropheIndex+1);
     }
-    console.log(text);
     return text;
+}
+
+function checkImage(htmlChildren){
+    var isImage = false;
+
+    $(htmlChildren).each(function(){
+        var tagName = $($(this)[0]).prop("tagName").toLowerCase();
+        if(tagName == "img") {
+            isImage = true;
+        }
+    });
+    return isImage;
+}
+
+function markAsAdded(html){
+    var range = window.getSelection().getRangeAt(0);
+    var span = document.createElement("span");
+    range.insertNode(span);
+    console.log($(span).parent());
+    $($(span).parent()).addClass("added")
+                       .css("border","3px solid red")
+                       .css("border-radius","5px");
+    //remove node?
 }
 
 function highlight(e){
 
     var html = "";
-    if (window.getSelection().toString() != "") {
-
+    var isImage = checkImage(window.getSelection().extentNode.children);    
+    console.log(isImage);
+    if (window.getSelection().toString() != "" || isImage) {
         var selection = window.getSelection();
         console.log(selection);
-        console.log(selection.anchorNode);
-        console.log(selection.extentNode);
         //if (selection.rangeCount && selection.anchorNode == selection.extentNode) {
-        if (selection.rangeCount){
+        if (selection.rangeCount > 0){
             var html = getSelectionHTML(selection);
-            html = checkForApostrophes(html);
-            console.log(html);
+            //html = checkForApostrophes(html);
             var anchorNode = selection.anchorNode;
+            var pathToSelected;
 
             if(html.indexOf('<img') != -1){
                 var src = $(html).attr("src");
                 addToList(src);
-
+                markAsAdded(html);
+                pathToSelected = "/html/body//img[@src='"+src+"']";
             } else {
-
                 addToList(html);
-                var pathToSelected = "/html/body//" + anchorNode.parentElement.localName + "[contains(.,'"+html+"')]";
-                var result = findSelectedTag(pathToSelected);
-                var tagArr = makeTagArr(pathToSelected,result);
-                if(queue.length >= 3){
-                    queue = [];
-                }
-                queue.push(tagArr);
-                if(queue.length >= 3){
-                    var prefixObject = findSimilarPrefix(queue);
-                    var isDifferent = checkSimilarTags(prefixObject.prefixArr);
-                    if(!isDifferent){
-                        var prePrefixElement = prefixObject.prePrefixElement;
-                        var prefixArr = prefixObject.prefixArr;
-                        var prePrefix = $(prePrefixElement[0] + ":eq(" + prePrefixElement[1] + ")");
-                        var sameElement = prefixObject.sameElement;
-                        var foundSame = false;
-                        var elementsPathArr = [];
-                        for(var i=0; i<queue[0].length; i++){
-                            var prePrefixTag = $($(prePrefix)[0]).prop("tagName").toLowerCase();
-                            var queueTag = $(queue[0][i][0] + ":eq(" + queue[0][i][1] + ")");
-                            if(foundSame){
-                                elementsPathArr.push(queue[0][i]);
-                            }
-
-                            if($(queueTag)[0] == $(prePrefix)[0]){
-                                foundSame = true;
-                            }
+                markAsAdded(html);
+                pathToSelected = "/html/body//" + anchorNode.parentElement.localName + "[contains(.,'"+html+"')]";
+            }
+            var result = findSelectedTag(pathToSelected);
+            var tagArr = makeTagArr(pathToSelected,result);
+            if(queue.length >= 3){
+                queue = [];
+            }
+            queue.push(tagArr);
+            if(queue.length >= 3){
+                var prefixObject = findSimilarPrefix(queue);
+                var isDifferent = checkSimilarTags(prefixObject.prefixArr);
+                if(!isDifferent){
+                    var prePrefixElement = prefixObject.prePrefixElement;
+                    var prefixArr = prefixObject.prefixArr;
+                    var prePrefix = $(prePrefixElement[0] + ":eq(" + prePrefixElement[1] + ")");
+                    var sameElement = prefixObject.sameElement;
+                    var foundSame = false;
+                    var elementsPathArr = [];
+                    for(var i=0; i<queue[0].length; i++){
+                        var prePrefixTag = $($(prePrefix)[0]).prop("tagName").toLowerCase();
+                        var queueTag = $(queue[0][i][0] + ":eq(" + queue[0][i][1] + ")");
+                        if(foundSame){
+                            elementsPathArr.push(queue[0][i]);
                         }
-                        var targetElement = $(prePrefix)[0];
-                        var path = findSimilar(targetElement,elementsPathArr,prefixObject);
-                        highlightSimilar(targetElement,path);
-                    } else {
-                        //do nothing
+
+                        if($(queueTag)[0] == $(prePrefix)[0]){
+                            foundSame = true;
+                        }
                     }
+                    var targetElement = $(prePrefix)[0];
+                    var path = findSimilar(targetElement,elementsPathArr,prefixObject);
+                    highlightSimilar(targetElement,path);
+                } else {
+                    //do nothing
                 }
             }
         }
-    }      
+    }
 }
 
 function addAllToDB(originalBackground){
-    var add = confirm("Add to DB?");
-    if(add){
-        $(".highlighted").each(function(){
-            var html = $(this).html();
-            addToList(html);
-        });
-        console.log("Adding all to DB");
-        $(".highlighted").css("background-color",originalBackground)
-                         .removeClass("highlighted");
-        queue = [];
-    } else {
-        /*$(".highlighted").hover(function(evt){
-            setTimeout(function(){
-                individualAdd = confirm("Add this?");
-                if(individualAdd){
+
+    if($('.highlighted').length > 0){
+        var add = confirm("Add to DB?");
+        if(add){
+            $(".highlighted").each(function(){
+                var html = $(this).html();
+                addToList(html);
+            });
+            console.log("Adding all to DB");
+            $(".highlighted").css("background-color",originalBackground)
+                             .css("border-color","red")
+                             .addClass("added")
+                             .removeClass("highlighted");
+            queue = [];
+        } else {
+            $(".highlighted").hover(function(evt){
                     addToList($(this).html());
-                    $(this).css("background-color",originalBackground)
-                           .removeClass("highlighted");
-                } else {
-                    $(this).css("background-color",originalBackground)
-                           .removeClass("highlighted");
-                    return;
-                }
-            }, 2000);
-        });*/
-        $(".highlighted").click(function(evt){
-            setTimeout(function(){ //find a better way to add to db
-                //addToList($(this).html());
-                console.log($(this));
-                $(this).css("background-color",originalBackground)
-                       .removeClass("highlighted");
-            }, 2000);
-        });
+                    //individualAdd = confirm("Add this?");
+                    /*if(individualAdd){
+                        addToList($(this).html());
+                        $(this).css("background-color",originalBackground)
+                               .css("border-color","red")
+                               .addClass("added")
+                               .removeClass("highlighted");
+                    } else {
+                        //if they don't want to add it one time
+                        //should it highlight ever again?
+                        $(this).css("background-color",originalBackground)
+                               .removeClass("highlighted");
+                        return;
+                    }*/
+            });
+        }
     }
 }
 
@@ -177,17 +199,18 @@ function findSimilar(targetElement,elementsPathArr,prefixObject){
 function highlightSimilar(targetElement,str){
     var similarElementsArr = [];
     var originalBackground;
-    console.log($(targetElement));
     $($(targetElement).find(str)).each(function(){
         var tag = $($(this)[0]).prop("tagName").toLowerCase();
         var siblingNum = $(this).index();
         var found = $(this);
-        console.log(found);
         originalBackground = $(this).css("background-color"); 
-        $(found).addClass("highlighted")
-                .css("background-color","yellow")
-                .css("border-radius","5px")
-                .css("opacity",0.8);
+        if(!$(found).hasClass("added")){
+            $(found).addClass("highlighted")
+                    .css("background-color","yellow")
+                    .css("border-radius","5px")
+                    .css("opacity",0.8)
+                    .css("border","3px solid yellow");
+        }
 
     });
     addAllToDB(originalBackground); 
@@ -228,7 +251,6 @@ function checkSimilarTags(prefixArr){
 }
 
 function findSelectedTag(pathToSelected){
-    console.log(pathToSelected);
     var nodes = document.evaluate(pathToSelected, document, null, XPathResult.ANY_TYPE, null);
     var result = nodes.iterateNext();
     return result;
@@ -237,7 +259,6 @@ function findSelectedTag(pathToSelected){
 function makeTagArr(pathToSelected,result){
     var backwardsPath = pathToSelected;
     var originalTagName = $(result).prop("tagName");
-    console.log(originalTagName);
     var currentTagName = $(result).prop("tagName").toLowerCase();
     var siblingIndex = $(result).index();
     var documentIndex = $(currentTagName).index(result);
@@ -347,4 +368,5 @@ function addToList(item){
     var url = $(location).attr('href');
     var table = "selected";
     update(url,val,table);
+    console.log("added to table");
 }
