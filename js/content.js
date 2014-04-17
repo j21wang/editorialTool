@@ -62,15 +62,24 @@ function checkImage(htmlChildren){
     return isImage;
 }
 
-function markAsAdded(html){
+function markAsAdded(html,isImage){
     var range = window.getSelection().getRangeAt(0);
     var span = document.createElement("span");
     range.insertNode(span);
-    console.log($(span).parent());
-    $($(span).parent()).addClass("added")
-                       .css("border","3px solid red")
-                       .css("border-radius","5px");
-    //remove node?
+
+    if(!isImage){
+        console.log($(span).parent());
+        $($(span).parent()).addClass("added")
+                           .css("border","3px solid red")
+                           .css("border-radius","5px");
+        $(span).remove();
+    } else {
+        $($(span).parent()).find("img").addClass("added")
+                                       .css("border","3px solid red")
+                                       .css("border-radius","5px");
+
+        $(span).remove();
+    }
 }
 
 function highlight(e){
@@ -91,11 +100,11 @@ function highlight(e){
             if(html.indexOf('<img') != -1){
                 var src = $(html).attr("src");
                 addToList(src);
-                markAsAdded(html);
+                markAsAdded(html,isImage);
                 pathToSelected = "/html/body//img[@src='"+src+"']";
             } else {
                 addToList(html);
-                markAsAdded(html);
+                markAsAdded(html,isImage);
                 pathToSelected = "/html/body//" + anchorNode.parentElement.localName + "[contains(.,'"+html+"')]";
             }
             var result = findSelectedTag(pathToSelected);
