@@ -3,50 +3,89 @@
   <head>
     <title>Getting Started Extension's Popup</title>
     <style>
-        #tables{
-            width:400px;
+        html{
+            height:230px;
+        }
+        body{
+            width:700px;
+            height:230px;
+            font-family:'Alegreya Sans','sans-serif';
+            font-size:13px;
         }
         #tableText{
-            width:400px;
+            width:200px;
         }
         .dataTable td{
-            max-width:200px;
-            min-width:200px;
+            max-width:240px;
+            min-width:240px;
             overflow:hidden;
             text-overflow: ellipsis;
             white-space:nowrap;
         }
+        #rightContainer{
+            position:relative;
+            width:500px;
+            bottom:272px;
+            left:180px;
+            height:180px;
+        }
+        #radioContainer{
+            border:thin solid lightGrey;
+            border-radius:3px;
+            height:240px;
+            width:160px;
+            overflow-y:scroll;
+        }
+        #leftContainer{
+            position:relative;
+            top:10px;
+            left:5px;
+        }
+        #tableName{
+            width:100px;
+        }
+        #container{
+            height:320px;
+            overflow:hidden;
+        }
     </style>
+    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Alegreya+Sans" />
+    <link rel="stylesheet" type="text/css" href="lib/iCheck/skins/flat/blue.css" />
     <link rel="stylesheet" type="text/css" href="lib/datatables/media/css/jquery.dataTables.css" />
     <link rel="stylesheet" type="text/css" href="lib/sidr/dist/stylesheets/jquery.sidr.dark.css" />
+    <!--<link rel="stylesheet" type="text/css" href="lib/avgrund/style/avgrund.css" />-->
     <script type="text/javascript" src="js/jquery-2.0.2.min.js"></script>
+    <script type="text/javascript" src="lib/iCheck/icheck.js"></script>
     <script type="text/javascript" src="js/popup.js"></script>
     <script type="text/javascript" src="lib/datatables/media/js/jquery.dataTables.js"></script> 
     <script type="text/javascript" src="lib/sidr/dist/jquery.sidr.js"></script>
+    <!--<script type="text/javascript" src="lib/avgrund/jquery.avgrund.js"></script>-->
   </head>
   <body>
-      <select id="tables" multiple>
-      </select>
-      <button id="createTable">New Table</button>
-      <button id="deleteTable">Delete Table</button>
-      <!--<a id="simple-menu" href="#sidr">Toggle menu</a>
-      <div id="sidr">
-          <ul>
-              <li><a href="#">List 1</a></li>
-              <li class="active"><a href="#">List 2</a></li>
-              <li><a href="#">List 3</a></li>
-          </ul>
-      </div>-->
-      <hr>
-      <table id="list" cellpadding="0" cellspacing="0" border="0" class="display" width="100%">
-          <thead>
-              <th> Selected </th>
-              <th> URL </th>
-          </thead>
-      </table>
-      <br>
-      <button id="deleteEntry">Delete Entry</button>
-      <div id="tableText"></div>
+      <div id="container">
+      <div id="leftContainer">
+          <div id="radioContainer">
+              <div id="radioButtons"></div>
+          </div>
+          <button id="createTable">New Table</button>
+          <button id="deleteTable">Delete Table</button>
+          <br>
+          <input type="text" id="tableName" disabled="disabled"><button id="submitName" disabled="disabled">Submit</button>
+      </div>
+      <div class="verticalLine"></div>
+      <div id="rightContainer">
+          <input id="groupCheck" type="checkbox" checked>Group mode<br>
+          <table id="list" cellpadding="0" cellspacing="0" border="0" class="display" width="100%">
+              <thead>
+                  <th> Selected </th>
+                  <th> URL </th>
+              </thead>
+          </table>
+          <br>
+          <button id="deleteEntry">Delete Entry</button>
+          <div id="tableText"></div>
+      </div>
+      </div>
   </body>
 </html>
 

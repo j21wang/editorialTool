@@ -1,37 +1,124 @@
+var isGroupMode = true;
+var oTable;
 $(document).ready(function(){
 
     select.loadTables();
-    var selectedTable = $("#tables").val()[0];
+    console.log(localStorage);
+    var selectedTable;
+    console.log($(".checked").length);
+    if($(".checked").length == 0 || localStorage === undefined || localStorage.length == 0){
+        selectedTable = $($(".iradio_flat-blue")[0]).next()[0].innerText;
+        $($(".iradio_flat-blue")[0]).addClass("checked");
+        console.log(selectedTable);
+    } else {
+        selectedTable = localStorage.selectedTable;
+        console.log(selectedTable);
+    }
+    table.switchTables(selectedTable);
     console.log(selectedTable);
-    table.initializeTable();
+    oTable = table.initializeTable();
     table.getTableData(selectedTable);
 
-    $("#tables").change(function(){
-        selectedTable = table.switchTables();
+    $("#groupCheck").click(function(){
+        isGroupMode = $(this).is(":checked"); 
+        table.switchTables(selectedTable);
+    });
+
+    $("ins.iCheck-helper").click(function(){
+        console.log(localStorage);
+        selectedTable = table.getSelectedTable();
+        console.log(selectedTable);
+        table.switchTables(selectedTable);
         table.getTableData(selectedTable);
     });
 
     $("#deleteTable").click(function(){
-        selectedTable = $("#tables").val()[0];
+        selectedTable = table.getSelectedTable(); 
+        console.log(selectedTable);
         table.deleteTable(selectedTable);
+        window.location.reload();
     });
 
+    /*$("#createTable").avgrund({
+        width: 300,
+        height: 80,
+        onLoad: function(elem){
+            $("#submitName").click(function(){
+                console.log("lol");
+                table.createTable($("#tableName").val());
+                window.location.reload();
+            });
+        },
+        onUnload: function(elem){
+            $("#submitName").click(function(){
+                console.log("lol");
+                table.createTable($("#tableName").val());
+                window.location.reload();
+            });
+        },
+        template: '<center>' + 
+                  '<div>What would you like to name your table?</div>' + 
+                  '<br>' +
+                  '<input type="text" id="tableName">' +
+                  '<button id="submitName">Submit</button' +
+                  '</center>'
+    });*/
     $("#createTable").click(function(){
-        //var tableName = prompt("What table would you like to add?");
-        table.createTable("movies");
+        $("#tableName").removeAttr("disabled");
+        $("#submitName").removeAttr("disabled");
+        $("#submitName").click(function(){
+            table.createTable($("#tableName").val());
+            window.location.reload();
+        });
+    });
+
+    $("#list tbody tr").click(function(event){
+        /*$(oTable.fnSettings().aoData).each(function(){
+            $(this.nTr).removeClass('row_selected');
+        });
+        $(event.target.parentNode).addClass('row_selected');
+        */
+        if($(this).hasClass('row_selected')){
+            $(this).removeClass('row_selected')
+        } else {
+            console.log($(".row_selected"));
+            oTable.$('tr.row_selected').removeClass('row_selected');
+            $(this).addClass('row_selected');
+        }
+    });
+
+    $("#deleteEntry").click(function(){
+        var anSelected = table.selectRow(oTable);
+        if(anSelected.length !== 0){
+            oTable.fnDeleteRow(anSelected[0]);
+        }
+        var row = $(anSelected[0])[0];
+        var rowText = $(row).children()[0].innerText;
+        var rowURL = $(row).children()[1].innerText;
+        console.log(rowURL);
+        /*var params = "deleteEntry="+anSelected;    
+        var response = postRequest(params);
+        if(response){
+            //$("#tables option:selected").remove();
+            console.log($("#radioButtons #"+selectedTable));
+            $("#radioButtons #"+selectedTable).remove();
+        }*/
     });
 });
 
 var table = {
 
     initializeTable: function(){
-        $("#list").dataTable();
+        return $("#list").dataTable();
     },
 
-    switchTables: function(){
-        $("#tableText").empty();
-        selectedTable = $("#tables").val()[0];
-        console.log(selectedTable);
+    switchTables: function(selectedTable){
+        chrome.extension.sendMessage({message: [selectedTable, isGroupMode]},function(response){
+        });
+    },
+
+    getSelectedTable: function(){
+        var selectedTable = ($(".checked")[0].nextElementSibling.textContent);
         return selectedTable;
     },
 
@@ -39,18 +126,32 @@ var table = {
         var params = "deleteTable="+selectedTable;    
         var response = postRequest(params);
         if(response){
-            $("#tables option:selected").remove();
-            //$("#tables:first-child").attr("selected","selected");
+            //$("#tables option:selected").remove();
+            console.log($("#radioButtons #"+selectedTable));
+            $("#radioButtons #"+selectedTable).remove();
         }
+    },
 
+    selectRow: function(oTableLocal){
+        /*var aReturn = new Array();
+        var aTrs = oTableLocal.fnGetNodes();
+        for(var i=0; i<aTrs.length; i++){
+            if($(aTrs[i]).hasClass('row_selected')){
+                aReturn.push(aTrs[i]);
+            }
+        }
+        return aReturn;
+        */
+        return oTableLocal.$('tr.row_selected');
     },
 
     createTable: function(tableName){
         var params = "createTable="+tableName;
         var response = postRequest(params);
         if(response){
-            $("#tables").append("<option value="+tableName+">"+tableName+"</option>");
+            $("#radioButtons").append('<input type="radio" id='+tableName+' name="iCheck"><label></label><br>');
         }
+        select.initializePlugin(tableName);
     },
 
     getTableData: function(selectedTable){
@@ -79,18 +180,28 @@ var select = {
         var responseDiv = document.createElement("div");
         $(responseDiv).html(response);
         var tablesArr = this.parseData($(responseDiv));
-        this.addToSelect(tablesArr);
+        this.addRadioButton(tablesArr);
    },
 
-   addToSelect: function(tablesArr){
+   addRadioButton: function(tablesArr){
         for(var i=0; i<tablesArr.length; i++){
             var entry = tablesArr[i];
-            if(i==0){
-                $("#tables").append("<option selected='selected' value="+entry+">"+entry+"</option>");
+            console.log(localStorage);
+            if(entry == localStorage.selectedTable){
+                $("#radioButtons").append('<input type="radio" id='+entry+' name="iCheck" checked><label>'+entry+'</label><br>');
             } else {
-                $("#tables").append("<option value="+entry+">"+entry+"</option>");
+                $("#radioButtons").append('<input type="radio" id='+entry+' name="iCheck"><label>'+entry+'</label><br>');
             }
+            this.initializePlugin(entry);
         }
+   },
+
+   initializePlugin: function(elementID){
+        $("#"+elementID).iCheck({
+            checkboxClass: 'icheckbox_flat-blue',
+            radioClass: 'iradio_flat-blue',
+            //insert:'<div class="icheck_line-icon"></div>'+elementID
+        });
    },
 
    parseData: function(response){
@@ -121,3 +232,4 @@ function postRequest(params){
     xhr.send(params);
     return xhr.responseText;
 }
+

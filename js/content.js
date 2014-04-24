@@ -1,5 +1,14 @@
 var queue = new Array();
 var tagIndexArr = new Array();
+var groupMode = true;
+
+chrome.runtime.onMessage.addListener(
+    function(message, sender, sendResponse){
+        groupMode = message.isGroupCheck;
+        console.log(groupMode);
+        sendResponse(message);
+    });
+
 
 $(document).keypress(function(e){
     if(e.which == 13){
@@ -70,13 +79,14 @@ function markAsAdded(html,isImage){
     if(!isImage){
         console.log($(span).parent());
         $($(span).parent()).addClass("added")
-                           .css("border","3px solid red")
-                           .css("border-radius","5px");
+                           .css("border","2px solid red")
+                           .css("border-radius","3px");
         $(span).remove();
     } else {
+        console.log($($(span).parent()).find("img"));
         $($(span).parent()).find("img").addClass("added")
-                                       .css("border","3px solid red")
-                                       .css("border-radius","5px");
+                                       .css("border","2px solid red")
+                                       .css("border-radius","3px");
 
         $(span).remove();
     }
@@ -98,6 +108,7 @@ function highlight(e){
             var pathToSelected;
 
             if(html.indexOf('<img') != -1){
+                //console.log($($($($(html)[0]).find("img"))[0]));
                 var src = $(html).attr("src");
                 addToList(src);
                 markAsAdded(html,isImage);
@@ -107,13 +118,14 @@ function highlight(e){
                 markAsAdded(html,isImage);
                 pathToSelected = "/html/body//" + anchorNode.parentElement.localName + "[contains(.,'"+html+"')]";
             }
+            console.log(pathToSelected);
             var result = findSelectedTag(pathToSelected);
             var tagArr = makeTagArr(pathToSelected,result);
-            if(queue.length >= 3){
+            if(queue.length >= 3 && groupMode){
                 queue = [];
             }
             queue.push(tagArr);
-            if(queue.length >= 3){
+            if(queue.length >= 3 && groupMode){
                 var prefixObject = findSimilarPrefix(queue);
                 var isDifferent = checkSimilarTags(prefixObject.prefixArr);
                 if(!isDifferent){
@@ -157,26 +169,22 @@ function addAllToDB(originalBackground){
             console.log("Adding all to DB");
             $(".highlighted").css("background-color",originalBackground)
                              .css("border-color","red")
+                             .css("border","2px solid red")
                              .addClass("added")
                              .removeClass("highlighted");
             queue = [];
         } else {
             $(".highlighted").hover(function(evt){
-                    addToList($(this).html());
-                    //individualAdd = confirm("Add this?");
-                    /*if(individualAdd){
-                        addToList($(this).html());
-                        $(this).css("background-color",originalBackground)
-                               .css("border-color","red")
-                               .addClass("added")
-                               .removeClass("highlighted");
-                    } else {
-                        //if they don't want to add it one time
-                        //should it highlight ever again?
-                        $(this).css("background-color",originalBackground)
-                               .removeClass("highlighted");
-                        return;
-                    }*/
+                var _this = this;
+                setTimeoutConst = setTimeout(function(){
+                    addToList($(_this).html());
+                    $(_this).css("background-color",originalBackground)
+                            .css("border","2px solid red")
+                            .addClass("added")
+                            .removeClass("highlighted");
+                }, 1500);
+            }, function(){
+                clearTimeout(setTimeoutConst);
             });
         }
     }
@@ -216,9 +224,9 @@ function highlightSimilar(targetElement,str){
         if(!$(found).hasClass("added")){
             $(found).addClass("highlighted")
                     .css("background-color","yellow")
-                    .css("border-radius","5px")
+                    .css("border-radius","3px")
                     .css("opacity",0.8)
-                    .css("border","3px solid yellow");
+                    .css("border","2px solid yellow");
         }
 
     });
@@ -369,13 +377,17 @@ function loadXMLDoc(){
 
 function update(pageUrl, value, selectedTable){
     chrome.extension.sendMessage({message: [pageUrl, value, selectedTable]}, function(response){
+        console.log(response);
     });
 }
 
 function addToList(item){
+    
     var val = item;
     var url = $(location).attr('href');
     var table = "selected";
     update(url,val,table);
     console.log("added to table");
 }
+
+

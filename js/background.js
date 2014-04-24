@@ -1,4 +1,5 @@
 var worker;
+var selectedTable;
 function startWorker(){
     worker = new Worker(chrome.extension.getURL("js/updateworker.js"));
 }
@@ -12,14 +13,47 @@ startWorker();
 
 chrome.extension.onMessage.addListener(
     function(req, sender, sendResponse) {
-        var pageUrl = req.message[0];
-        var message = req.message[1];
-        var selectedTable = req.message[2];
-        console.log(pageUrl + " " + message + " " + selectedTable);
-        postToDB({url: pageUrl, text1: message, table: selectedTable});
-        sendResponse({url: pageUrl, text1: message, table: selectedTable});
+        console.log(req);
+        console.log(req.message.length);
+        if(req.message.length>2){
+            var pageUrl = req.message[0];
+            var message = req.message[1];
+            //var selectedTable = req.message[2];
+            selected = selectedTable;
+            console.log(selected);
+            console.log(pageUrl + " " + message + " " + selectedTable);
+            postToDB({url: pageUrl, text1: message, table: selectedTable});
+            sendResponse({url: pageUrl, text1: message, table: selectedTable});
+        } else {
+            console.log(req.message[0]);
+            selectedTable = req.message[0];
+            isGroupCheck = req.message[1];
+            saveChanges();
+            console.log(selectedTable);
+            chrome.tabs.query({active:true, currentWindow:true},function(tabs){
+                console.log(selectedTable);
+                console.log(tabs);
+                chrome.tabs.sendMessage(tabs[0].id,{selectedTable:selectedTable,isGroupCheck:isGroupCheck},function(response){
+                    console.log(response);
+                });
+            });
+        }
     }
 );
+
+function saveChanges(){
+    localStorage["selectedTable"] = selectedTable;
+    console.log(localStorage["selectedTable"]);
+}
+
+/*chrome.tabs.query({active:true, currentWindow:true},
+    function(tabs){
+        console.log(selected);
+        chrome.tabs.sendMessage(tabs[0].id,{selectedTable:selected},
+    function(response){
+        console.log(response);
+    });
+});*/
 
 /*chrome.tabs.create({
     url: chrome.extension.getURL('../popup.html'),
