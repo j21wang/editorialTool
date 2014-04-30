@@ -1,4 +1,5 @@
 var isGroupMode = true;
+var isLimitCheck = true;
 var oTable;
 $(document).ready(function(){
 
@@ -7,12 +8,26 @@ $(document).ready(function(){
     var selectedTable;
     console.log($(".checked").length);
     if($(".checked").length == 0 || localStorage === undefined || localStorage.length == 0){
-        selectedTable = $($(".iradio_flat-blue")[0]).next()[0].innerText;
-        $($(".iradio_flat-blue")[0]).addClass("checked");
-        console.log(selectedTable);
+        if($($(".iradio_flat-blue")[0]).next()[0]!==undefined){
+            selectedTable = $($(".iradio_flat-blue")[0]).next()[0].innerText;
+            $($(".iradio_flat-blue")[0]).addClass("checked");
+            console.log(selectedTable);
+        }
     } else {
         selectedTable = localStorage.selectedTable;
         console.log(selectedTable);
+    }
+    isGroupMode = localStorage.isGroupCheck;
+    if(isGroupMode=="true"){
+        $("#groupCheck").prop("checked",true);
+    } else {
+        $("#groupCheck").prop("checked",false);
+    }
+    isLimitCheck = localStorage.isLimitCheck;
+    if(isLimitCheck=="true"){
+        $("#allResultsCheck").prop("checked",true);
+    } else {
+        $("#allResultsCheck").prop("checked",false);
     }
     table.switchTables(selectedTable);
     console.log(selectedTable);
@@ -22,6 +37,12 @@ $(document).ready(function(){
     $("#groupCheck").click(function(){
         isGroupMode = $(this).is(":checked"); 
         table.switchTables(selectedTable);
+    });
+
+    $("#allResultsCheck").click(function(){
+        isLimitCheck = $(this).is(":checked"); 
+        table.switchTables(selectedTable);
+        window.location.reload();
     });
 
     $("ins.iCheck-helper").click(function(){
@@ -39,45 +60,45 @@ $(document).ready(function(){
         window.location.reload();
     });
 
-    /*$("#createTable").avgrund({
+    /*$("#viewAll").avgrund({
         width: 300,
         height: 80,
         onLoad: function(elem){
-            $("#submitName").click(function(){
-                console.log("lol");
-                table.createTable($("#tableName").val());
-                window.location.reload();
+            var params = "allData="+table.getSelectedTable();
+            params = params + "&search=Search";
+            var response = postRequest(params);
+            console.log(response);
+            var responseDiv = document.createElement("div");
+            $(responseDiv).html(response);
+            $(responseDiv).find('editorialTool').each(function(){
+                var listItem = $(this).text();
+                var line = listItem.indexOf("|");
+                var selectedListItem = listItem.substring(0,line);
+                var urlListItem = listItem.substring(line+1);
+                $("#entireList").html(selectedListItem);
+                //$("#list").dataTable().fnAddData([selectedListItem,urlListItem]);
             });
+
         },
         onUnload: function(elem){
-            $("#submitName").click(function(){
-                console.log("lol");
-                table.createTable($("#tableName").val());
-                window.location.reload();
-            });
+            
         },
         template: '<center>' + 
-                  '<div>What would you like to name your table?</div>' + 
-                  '<br>' +
-                  '<input type="text" id="tableName">' +
-                  '<button id="submitName">Submit</button' +
+                  '<div id="entireList"> </div>' +
                   '</center>'
+
     });*/
     $("#createTable").click(function(){
         $("#tableName").removeAttr("disabled");
         $("#submitName").removeAttr("disabled");
         $("#submitName").click(function(){
             table.createTable($("#tableName").val());
+            localStorage.selectedTable = $("#tableName").val();
             window.location.reload();
         });
     });
 
-    $("#list tbody tr").click(function(event){
-        /*$(oTable.fnSettings().aoData).each(function(){
-            $(this.nTr).removeClass('row_selected');
-        });
-        $(event.target.parentNode).addClass('row_selected');
-        */
+    $("#list").delegate("tbody tr","click",function(event){
         if($(this).hasClass('row_selected')){
             $(this).removeClass('row_selected')
         } else {
@@ -85,6 +106,7 @@ $(document).ready(function(){
             oTable.$('tr.row_selected').removeClass('row_selected');
             $(this).addClass('row_selected');
         }
+        oTable = table.initializeTable();
     });
 
     $("#deleteEntry").click(function(){
@@ -95,15 +117,37 @@ $(document).ready(function(){
         var row = $(anSelected[0])[0];
         var rowText = $(row).children()[0].innerText;
         var rowURL = $(row).children()[1].innerText;
+        console.log(rowText);
         console.log(rowURL);
-        /*var params = "deleteEntry="+anSelected;    
+        var params = "deleteEntry="+rowText+"#"+rowURL;    
+        params = params + "&selectedTable=" + selectedTable;
         var response = postRequest(params);
         if(response){
             //$("#tables option:selected").remove();
+            console.log(response);
             console.log($("#radioButtons #"+selectedTable));
             $("#radioButtons #"+selectedTable).remove();
-        }*/
+        }
     });
+
+    $("#addEntry").click(function(){
+        console.log("HI");
+        $("#entry").removeAttr("disabled");
+        $("#submitEntry").removeAttr("disabled");
+        $("#submitEntry").click(function(){
+            console.log("EHH");
+            var entry = $("#entry").val();
+            console.log(entry);
+            var params = "addEntry="+entry;    
+            params = params + "&selectedTable=" + selectedTable;
+            var response = postRequest(params);
+            if(response){
+                console.log(response);
+                window.location.reload();
+            }
+        });
+    });
+
 });
 
 var table = {
@@ -113,7 +157,7 @@ var table = {
     },
 
     switchTables: function(selectedTable){
-        chrome.extension.sendMessage({message: [selectedTable, isGroupMode]},function(response){
+        chrome.extension.sendMessage({message: [selectedTable, isGroupMode, isLimitCheck]},function(response){
         });
     },
 
@@ -133,15 +177,6 @@ var table = {
     },
 
     selectRow: function(oTableLocal){
-        /*var aReturn = new Array();
-        var aTrs = oTableLocal.fnGetNodes();
-        for(var i=0; i<aTrs.length; i++){
-            if($(aTrs[i]).hasClass('row_selected')){
-                aReturn.push(aTrs[i]);
-            }
-        }
-        return aReturn;
-        */
         return oTableLocal.$('tr.row_selected');
     },
 
@@ -149,7 +184,8 @@ var table = {
         var params = "createTable="+tableName;
         var response = postRequest(params);
         if(response){
-            $("#radioButtons").append('<input type="radio" id='+tableName+' name="iCheck"><label></label><br>');
+            localStorage.selectedTable = tableName;
+            $("#radioButtons").append('<input type="radio" id='+tableName+' name="iCheck" checked><label></label><br>');
         }
         select.initializePlugin(tableName);
     },
@@ -157,18 +193,21 @@ var table = {
     getTableData: function(selectedTable){
         var params = "selectedTable="+selectedTable;
         params = params + "&search=Search";
+        params = params + "&isLimit="+isLimitCheck;
         $("#list").dataTable().fnClearTable();
         var response = postRequest(params);
-        console.log(response);
-        var responseDiv = document.createElement("div");
-        $(responseDiv).html(response);
-        $(responseDiv).find('editorialTool').each(function(){
-            var listItem = $(this).text();
-            var line = listItem.indexOf("|");
-            var selectedListItem = listItem.substring(0,line);
-            var urlListItem = listItem.substring(line+1);
-            $("#list").dataTable().fnAddData([selectedListItem,urlListItem]);
-        });
+        if(response){
+            console.log(response);
+            var responseDiv = document.createElement("div");
+            $(responseDiv).html(response);
+            $(responseDiv).find('editorialTool').each(function(){
+                var listItem = $(this).text();
+                var line = listItem.indexOf("|");
+                var selectedListItem = listItem.substring(0,line);
+                var urlListItem = listItem.substring(line+1);
+                $("#list").dataTable().fnAddData([selectedListItem,urlListItem]);
+            });
+        }
    },
 }
 

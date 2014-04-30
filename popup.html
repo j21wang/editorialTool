@@ -74,7 +74,8 @@
       </div>
       <div class="verticalLine"></div>
       <div id="rightContainer">
-          <input id="groupCheck" type="checkbox" checked>Group mode<br>
+          <input id="groupCheck" type="checkbox" checked>Group mode
+          <input id="allResultsCheck" type="checkbox" checked>Limit results<br>
           <table id="list" cellpadding="0" cellspacing="0" border="0" class="display" width="100%">
               <thead>
                   <th> Selected </th>
@@ -83,7 +84,10 @@
           </table>
           <br>
           <button id="deleteEntry">Delete Entry</button>
-          <div id="tableText"></div>
+          <button id="addEntry">Add Entry</button>
+          <input type="text" id="entry" disabled="disabled"><button id="submitEntry" disabled="disabled">Submit</button>
+          <!--<div id="tableText"></div>-->
+          <!--<button id="viewAll">View All</button>-->
       </div>
       </div>
   </body>

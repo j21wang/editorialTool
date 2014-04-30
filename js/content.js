@@ -2,18 +2,20 @@ var queue = new Array();
 var tagIndexArr = new Array();
 var groupMode = true;
 
-chrome.runtime.onMessage.addListener(
-    function(message, sender, sendResponse){
-        groupMode = message.isGroupCheck;
-        console.log(groupMode);
-        sendResponse(message);
+$(document).ready(function(){
+    chrome.runtime.onMessage.addListener(
+        function(message, sender, sendResponse){
+            groupMode = message.isGroupCheck;
+            console.log(groupMode);
+            sendResponse(message);
+        });
+
+
+    $(document).keypress(function(e){
+        if(e.which == 13){
+            highlight(e);
+        }
     });
-
-
-$(document).keypress(function(e){
-    if(e.which == 13){
-        highlight(e);
-    }
 });
 
 function resetSelection(){
@@ -49,14 +51,6 @@ function checkQueue(queue){
         return true;
     }
     return false;
-}
-
-function checkForApostrophes(text){
-    var apostropheIndex = text.indexOf("'");
-    if(apostropheIndex != -1){
-        text = text.substring(0,apostropheIndex) + "&apos" + text.substring(apostropheIndex+1);
-    }
-    return text;
 }
 
 function checkImage(htmlChildren){
@@ -103,9 +97,9 @@ function highlight(e){
         //if (selection.rangeCount && selection.anchorNode == selection.extentNode) {
         if (selection.rangeCount > 0){
             var html = getSelectionHTML(selection);
-            //html = checkForApostrophes(html);
             var anchorNode = selection.anchorNode;
             var pathToSelected;
+            var added;
 
             if(html.indexOf('<img') != -1){
                 //console.log($($($($(html)[0]).find("img"))[0]));
@@ -116,11 +110,12 @@ function highlight(e){
             } else {
                 addToList(html);
                 markAsAdded(html,isImage);
-                pathToSelected = "/html/body//" + anchorNode.parentElement.localName + "[contains(.,'"+html+"')]";
+                pathToSelected = '/html/body//' + anchorNode.parentElement.localName + '[contains(.,"'+html+'")]';
             }
             console.log(pathToSelected);
             var result = findSelectedTag(pathToSelected);
             var tagArr = makeTagArr(pathToSelected,result);
+            console.log(groupMode);
             if(queue.length >= 3 && groupMode){
                 queue = [];
             }
@@ -160,12 +155,17 @@ function highlight(e){
 function addAllToDB(originalBackground){
 
     if($('.highlighted').length > 0){
-        var add = confirm("Add to DB?");
+        var add = confirm("Add all to selected table?");
         if(add){
+            var addArr = [];
             $(".highlighted").each(function(){
                 var html = $(this).html();
-                addToList(html);
+                if(html != ""){
+                    addArr.push(html);
+                }
             });
+            console.log(addArr);
+            addToList(addArr);
             console.log("Adding all to DB");
             $(".highlighted").css("background-color",originalBackground)
                              .css("border-color","red")
@@ -228,16 +228,16 @@ function highlightSimilar(targetElement,str){
                     .css("opacity",0.8)
                     .css("border","2px solid yellow");
         }
-
     });
     addAllToDB(originalBackground); 
 }
 
 function checkSimilarTags(prefixArr){
     var isDifferent = false;
+    var threshold = 0.4;
     for(var i=0; i<queue[0].length; i++){
         if(arraysEqual(queue[0][i],prefixArr[0]) && !isDifferent){
-            if(i/queue[0].length >= 0.5){
+            if(i/queue[0].length >= threshold){
                 var selectedFirst = $(queue[0][i][0] + ":eq(" + queue[0][i][1] + ")");
             } else {
                 isDifferent = true;
@@ -247,7 +247,7 @@ function checkSimilarTags(prefixArr){
 
     for(var i=0; i<queue[1].length; i++){
         if(arraysEqual(queue[1][i],prefixArr[1]) && !isDifferent){
-            if(i/queue[1].length >= 0.5){
+            if(i/queue[1].length >= threshold){
                 var selectedSecond = $(queue[1][i][0] + ":eq(" + queue[1][i][1] + ")");
             } else {
                 isDifferent = true;
@@ -257,7 +257,7 @@ function checkSimilarTags(prefixArr){
 
     for(var i=0; i<queue[2].length; i++){
         if(arraysEqual(queue[2][i],prefixArr[2]) && !isDifferent){
-            if(i/queue[2].length >= 0.5){
+            if(i/queue[2].length >= threshold){
                 var selectedThird = $(queue[2][i][0] + ":eq(" + queue[2][i][1] + ")");
             } else {
                 isDifferent = true;
@@ -376,7 +376,7 @@ function loadXMLDoc(){
 }
 
 function update(pageUrl, value, selectedTable){
-    chrome.extension.sendMessage({message: [pageUrl, value, selectedTable]}, function(response){
+    chrome.extension.sendMessage({message: [pageUrl, value]}, function(response){
         console.log(response);
     });
 }
@@ -389,5 +389,6 @@ function addToList(item){
     update(url,val,table);
     console.log("added to table");
 }
+
 
 

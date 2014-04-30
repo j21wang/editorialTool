@@ -3,9 +3,9 @@ self.onmessage = function(evt) {
     var url = evt.data.url;
     var text = evt.data.text1;
     var selectedTable = evt.data.table;
-    console.log(url);
-    console.log(text);
-    console.log(selectedTable);
+    //console.log(url);
+    //console.log(text);
+    //console.log(selectedTable);
     var xhr = new XMLHttpRequest();
     var params = "text=" + encodeURIComponent(text);
     params = params + "&url=" + encodeURIComponent(url);

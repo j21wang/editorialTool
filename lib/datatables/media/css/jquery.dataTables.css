@@ -12,14 +12,14 @@ table.dataTable {
 
 table.dataTable thead th {
 	padding: 3px 18px 3px 10px;
-	border-bottom: 1px solid #ab423f;
+	border-bottom: 1px solid #0066FF;
 	font-weight: bold;
 	cursor: pointer;
 	*cursor: hand;
 }
 
 th:hover{
-   color:#ab423f;
+   color:#0066FF;
 }
 
 table.dataTable tfoot th {
@@ -48,10 +48,10 @@ table.dataTable tr.even {
    cursor: pointer;
 }
 
-table.dataTable tr.odd td.sorting_1 { background-color: #FFC0BE; }
+table.dataTable tr.odd td.sorting_1 { background-color: #FFBC59; }
 table.dataTable tr.odd td.sorting_2 { background-color: #F26965; }
 table.dataTable tr.odd td.sorting_3 { background-color: #FFA7A4; }
-table.dataTable tr.even td.sorting_1 { background-color: #FFDCDB; }
+table.dataTable tr.even td.sorting_1 { background-color: #FFD18D; }
 table.dataTable tr.even td.sorting_2 { background-color: #FFE5E4; }
 table.dataTable tr.even td.sorting_3 { background-color: #FFF9F9; }
 
@@ -231,5 +231,13 @@ table.dataTable thead td:active {
 .dataTables_scrollBody {
 	*margin-top: -1px;
 	-webkit-overflow-scrolling: touch;
+}
+
+.row_selected{
+    color:#3399FF;
+}
+
+.even:hover, .odd:hover{
+    color:#3399FF;
 }
 
