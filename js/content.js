@@ -1,6 +1,7 @@
 var queue = new Array();
 var tagIndexArr = new Array();
 var groupMode = true;
+var temp;
 
 $(document).ready(function(){
     chrome.runtime.onMessage.addListener(
@@ -39,7 +40,12 @@ function getSelectionHTML(sel){
     for (var i = 0, len = sel.rangeCount; i < len; ++i) {
         container.appendChild(sel.getRangeAt(i).cloneContents());
     }
-    return container.innerHTML;
+    var target = $(container);
+    console.log($(target));
+    console.log($(target)[0].innerText.trim());
+
+    return $(target)[0].innerText.trim();
+    //return container.innerHTML;
 }
 
 //This function checks if the last elements in the queues are the same element
@@ -75,6 +81,7 @@ function markAsAdded(html,isImage){
         $($(span).parent()).addClass("added")
                            .css("border","2px solid red")
                            .css("border-radius","3px");
+        temp = $(span).parent()[0];
         $(span).remove();
     } else {
         console.log($($(span).parent()).find("img"));
@@ -97,6 +104,7 @@ function highlight(e){
         //if (selection.rangeCount && selection.anchorNode == selection.extentNode) {
         if (selection.rangeCount > 0){
             var html = getSelectionHTML(selection);
+            console.log(html);
             var anchorNode = selection.anchorNode;
             var pathToSelected;
             var added;
@@ -110,12 +118,17 @@ function highlight(e){
             } else {
                 addToList(html);
                 markAsAdded(html,isImage);
-                pathToSelected = '/html/body//' + anchorNode.parentElement.localName + '[contains(.,"'+html+'")]';
+                console.log(temp.localName);
+                console.log(anchorNode.parentElement.localName);
+                pathToSelected = '/html/body//' + temp.localName + '[contains(.,"'+html+'")]';
             }
+
             console.log(pathToSelected);
             var result = findSelectedTag(pathToSelected);
+            result = temp;
+            console.log(result);
             var tagArr = makeTagArr(pathToSelected,result);
-            console.log(groupMode);
+            console.log(tagArr);
             if(queue.length >= 3 && groupMode){
                 queue = [];
             }
@@ -195,6 +208,7 @@ function findSimilar(targetElement,elementsPathArr,prefixObject){
     var siblingNumber;
     var prefixArr = prefixObject.prefixArr;
     var sameElement = prefixObject.sameElement;
+    console.log(elementsPathArr);
     for(var i=0; i<elementsPathArr.length; i++){
         var pre = $(prefixArr[0][0] + ":eq(" + prefixArr[0][1] + ")");
         var ele = $(elementsPathArr[i][0] + ":eq(" + elementsPathArr[i][1] + ")");
@@ -206,7 +220,6 @@ function findSimilar(targetElement,elementsPathArr,prefixObject){
                 siblingNumber = elementsPathArr[i][2]+1;
             }
             path = path + ":nth-child("+siblingNumber+")";
-            console.log(path);
             break;
         }
     }
@@ -275,7 +288,9 @@ function findSelectedTag(pathToSelected){
 
 function makeTagArr(pathToSelected,result){
     var backwardsPath = pathToSelected;
+    console.log(backwardsPath);
     var originalTagName = $(result).prop("tagName");
+    console.log(originalTagName);
     var currentTagName = $(result).prop("tagName").toLowerCase();
     var siblingIndex = $(result).index();
     var documentIndex = $(currentTagName).index(result);
@@ -375,7 +390,7 @@ function loadXMLDoc(){
     return xhr;
 }
 
-function update(pageUrl, value, selectedTable){
+function update(pageUrl, value){
     chrome.extension.sendMessage({message: [pageUrl, value]}, function(response){
         console.log(response);
     });
@@ -385,8 +400,7 @@ function addToList(item){
     
     var val = item;
     var url = $(location).attr('href');
-    var table = "selected";
-    update(url,val,table);
+    update(url,val);
     console.log("added to table");
 }
 
