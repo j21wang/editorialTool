@@ -2,6 +2,7 @@ var queue = new Array();
 var tagIndexArr = new Array();
 var groupMode = true;
 var temp;
+var isImg;
 
 $(document).ready(function(){
     chrome.runtime.onMessage.addListener(
@@ -36,16 +37,22 @@ function getSelectionParent(sel){
 }
 
 function getSelectionHTML(sel){
+    console.log($(sel.anchorNode).find("img").length);
     var container = document.createElement("div");
     for (var i = 0, len = sel.rangeCount; i < len; ++i) {
         container.appendChild(sel.getRangeAt(i).cloneContents());
     }
     var target = $(container);
-    console.log($(target));
-    console.log($(target)[0].innerText.trim());
 
-    return $(target)[0].innerText.trim();
-    //return container.innerHTML;
+    if($(sel.anchorNode).find("img").length > 0){
+        console.log($(target)[0]);
+        isImg = true;
+        return container.innerHTML;
+    } else {
+        console.log($(target)[0].innerText.trim());
+        isImg = false;
+        return $(target)[0].innerText.trim();
+    }
 }
 
 //This function checks if the last elements in the queues are the same element
@@ -88,8 +95,27 @@ function markAsAdded(html,isImage){
         $($(span).parent()).find("img").addClass("added")
                                        .css("border","2px solid red")
                                        .css("border-radius","3px");
-
+        //temp = $(span).parent()[0];
+        temp = $($(span).parent()).find("img")[0];
+        console.log(temp);
         $(span).remove();
+    }
+}
+
+function getPathTo(element) {
+    if (element.id!=='')
+        return 'id("'+element.id+'")';
+    if (element===document.body)
+        return element.tagName;
+
+    var ix= 0;
+    var siblings= element.parentNode.childNodes;
+    for (var i= 0; i<siblings.length; i++) {
+        var sibling= siblings[i];
+        if (sibling===element)
+            return getPathTo(element.parentNode)+'/'+element.tagName+'['+(ix+1)+']';
+        if (sibling.nodeType===1 && sibling.tagName===element.tagName)
+            ix++;
     }
 }
 
@@ -99,34 +125,46 @@ function highlight(e){
     var isImage = checkImage(window.getSelection().extentNode.children);    
     console.log(isImage);
     if (window.getSelection().toString() != "" || isImage) {
+        $(".highlighted").css("background-color","transparent")
+                             .css("border","none")
+                             .removeClass("highlighted");
+        $("#box").remove();
+
         var selection = window.getSelection();
         console.log(selection);
         //if (selection.rangeCount && selection.anchorNode == selection.extentNode) {
         if (selection.rangeCount > 0){
             var html = getSelectionHTML(selection);
-            console.log(html);
             var anchorNode = selection.anchorNode;
             var pathToSelected;
             var added;
 
+            //if($(selection.anchorNode).find("img").length > 0){
             if(html.indexOf('<img') != -1){
-                //console.log($($($($(html)[0]).find("img"))[0]));
+                isImg = true;
+                //console.log(pathToSelected);
+                //var src = $(selection.anchorNode).find("img")[0].src;
                 var src = $(html).attr("src");
                 addToList(src);
                 markAsAdded(html,isImage);
                 pathToSelected = "/html/body//img[@src='"+src+"']";
+                //pathToSelected = getPathTo($(selection.anchorNode).find("img")[0]);
+                //pathToSelected = getPathTo(temp);
             } else {
+                isImg = false;
                 addToList(html);
                 markAsAdded(html,isImage);
-                console.log(temp.localName);
+                console.log($(temp).index());
                 console.log(anchorNode.parentElement.localName);
-                pathToSelected = '/html/body//' + temp.localName + '[contains(.,"'+html+'")]';
+                //pathToSelected = '/html/body//' + temp2.localName + '/' + temp.localName + '[contains(.,"'+html+'")]';
+                pathToSelected = getPathTo(temp);
             }
 
             console.log(pathToSelected);
             var result = findSelectedTag(pathToSelected);
-            result = temp;
             console.log(result);
+            //console.log(temp);
+            //result = temp;
             var tagArr = makeTagArr(pathToSelected,result);
             console.log(tagArr);
             if(queue.length >= 3 && groupMode){
@@ -155,8 +193,16 @@ function highlight(e){
                         }
                     }
                     var targetElement = $(prePrefix)[0];
-                    var path = findSimilar(targetElement,elementsPathArr,prefixObject);
-                    highlightSimilar(targetElement,path);
+
+                    if(prePrefixElement[0] == "tbody" || prePrefixElement[0] == "table"){
+                        var path = findSimilar(targetElement,elementsPathArr,prefixObject,true);
+                        console.log(path);
+                        highlightSimilar(targetElement,path);
+                    } else {
+                        var path = findSimilar(targetElement,elementsPathArr,prefixObject,false);
+                        console.log(path);
+                        highlightSimilar(targetElement,path);
+                    }
                 } else {
                     //do nothing
                 }
@@ -165,16 +211,54 @@ function highlight(e){
     }
 }
 
+function popUp(){
+
+    var add = document.createElement("div");
+    $("body").append(add);
+    $($(add)[0]).css("background-color","gray")
+             .css("width","300px")
+             .css("height","70px")
+             .css("position","fixed")
+             .css("top","1em")
+            .css("right","1em")
+            .css("border-radius","3px")
+            .attr("id","box");
+    $("<center><p id='selectText'>Add all to selected table?</p><button id='okButton'>Add All</button><button id='addOneButton'>Add Some</button><button id='cancelButton'>Deselect All</button></center>").appendTo("#box");
+    $("#selectText").css("color","white")
+                    .css("font-size","15px");
+    $('button').css("width","90px")
+                      .css("height","20px");
+
+}
+
 function addAllToDB(originalBackground){
 
     if($('.highlighted').length > 0){
-        var add = confirm("Add all to selected table?");
-        if(add){
+        popUp();
+
+        var add = false;
+        $("#okButton").click(function(){
+            add = true;
             var addArr = [];
             $(".highlighted").each(function(){
-                var html = $(this).html();
-                if(html != ""){
-                    addArr.push(html);
+                if(!isImg){
+                    var html = $(this).html();
+                    if(html.indexOf('"') > -1){
+                        html = html.replace(/"/g,"'");
+                    }
+                    if(html != ""){
+                        addArr.push(html);
+                    }
+                } else {
+                    var html = $(this).attr("src");
+                    console.log(html);
+                    if(html.indexOf('"') > -1){
+                        html = html.replace(/"/g,"'");
+                    }
+                    console.log(html);
+                    if(html != ""){
+                        addArr.push(html);
+                    }
                 }
             });
             console.log(addArr);
@@ -186,7 +270,10 @@ function addAllToDB(originalBackground){
                              .addClass("added")
                              .removeClass("highlighted");
             queue = [];
-        } else {
+            $("#box").remove();
+        });
+
+        $("#addOneButton").click(function(){
             $(".highlighted").hover(function(evt){
                 var _this = this;
                 setTimeoutConst = setTimeout(function(){
@@ -199,28 +286,39 @@ function addAllToDB(originalBackground){
             }, function(){
                 clearTimeout(setTimeoutConst);
             });
-        }
+            $("#box").remove();
+        });
+
+        $("#cancelButton").click(function(){
+            $(".highlighted").css("background-color",originalBackground)
+                             .css("border","none")
+                             .removeClass("highlighted");
+            $("#box").remove();
+        });
     }
 }
 
-function findSimilar(targetElement,elementsPathArr,prefixObject){
+function findSimilar(targetElement,elementsPathArr,prefixObject,isTable){
     var path = "";
     var siblingNumber;
     var prefixArr = prefixObject.prefixArr;
+    console.log(prefixArr);
     var sameElement = prefixObject.sameElement;
     console.log(elementsPathArr);
     for(var i=0; i<elementsPathArr.length; i++){
+        console.log(elementsPathArr);
         var pre = $(prefixArr[0][0] + ":eq(" + prefixArr[0][1] + ")");
         var ele = $(elementsPathArr[i][0] + ":eq(" + elementsPathArr[i][1] + ")");
+        console.log(elementsPathArr[i]);
         path = path + " > " + elementsPathArr[i][0];
-        if(pre[0] == ele[0]){
+        if(pre[0] == ele[0] || (isTable && elementsPathArr[i][0] == "td")){
             if(!sameElement){ // not the same element
                 siblingNumber = elementsPathArr[i-1][2]+1;
             } else { // same element
                 siblingNumber = elementsPathArr[i][2]+1;
             }
             path = path + ":nth-child("+siblingNumber+")";
-            break;
+            if(pre[0] == ele[0]) break;
         }
     }
     return path;
@@ -290,7 +388,6 @@ function makeTagArr(pathToSelected,result){
     var backwardsPath = pathToSelected;
     console.log(backwardsPath);
     var originalTagName = $(result).prop("tagName");
-    console.log(originalTagName);
     var currentTagName = $(result).prop("tagName").toLowerCase();
     var siblingIndex = $(result).index();
     var documentIndex = $(currentTagName).index(result);
@@ -310,6 +407,7 @@ function makeTagArr(pathToSelected,result){
         documentIndex = $(currentTagName).index(nodesResult); //whole document
         indexTagArr.unshift([currentTagName,documentIndex,siblingIndex]);
     }
+    console.log(indexTagArr);
     return indexTagArr;
 }
 
@@ -348,6 +446,8 @@ function findSimilarPrefix(queue){
     var secondLength;
     var thirdLength;
 
+    console.log(queue);
+
     if(queue[0][queue[0].length-1][0] == queue[1][queue[1].length-1][0] && queue[1][queue[1].length-1][0] == queue[2][queue[2].length-1][0]
             && queue[0][queue[0].length-1][2] == queue[1][queue[1].length-1][2] && queue[1][queue[1].length-1][2] == queue[2][queue[2].length-1][2]){
         firstLength = queue[0].length-1;
@@ -375,7 +475,9 @@ function findSimilarPrefix(queue){
                  if(queue[0][j][0] == queue[1][k][0] && queue[0][j][0] == queue[2][l][0] 
                          && queue[0][j][1] == queue[1][k][1] && queue[0][j][1] == queue[2][l][1]){
                      prePrefixElement = queue[0][j];
+                     console.log(queue[0][j]);
                      var prefixObject = {prePrefixElement: prePrefixElement, prefixArr: prefixArr, sameElement: sameElement};
+                     console.log(prefixObject);
                      return prefixObject;
                  }
              }

@@ -148,6 +148,37 @@ $(document).ready(function(){
         });
     });
 
+    $("#csv").click(function(){
+        var params = "selectedTable="+selectedTable;
+        params = params + "&search=Search";
+        var response = postRequest(params);
+        if(response){
+            console.log(response);
+            var responseDiv = document.createElement("div");
+            var data = [];
+            $(responseDiv).html(response);
+            $(responseDiv).find('editorialTool').each(function(){
+                var listItem = $(this).text();
+                var line = listItem.indexOf("|");
+                var selectedListItem = listItem.substring(0,line);
+                var urlListItem = listItem.substring(line+1);
+                data.push([selectedListItem,urlListItem]);
+            });
+
+            var csvContent = "data:text/csv;charset=utf-8";
+            data.forEach(function(infoArray,index){
+                dataString = infoArray.join(",");
+                csvContent += index < infoArray.length ? dataString + "\n" : dataString;
+            });
+            var encodedUri = encodeURI(csvContent);
+            var link = document.createElement("a");
+            link.setAttribute("href",encodedUri);
+            link.setAttribute("download","edTool_"+selectedTable+".csv");
+            link.click();
+        }
+
+    });
+
 });
 
 var table = {
