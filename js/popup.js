@@ -60,34 +60,6 @@ $(document).ready(function(){
         window.location.reload();
     });
 
-    /*$("#viewAll").avgrund({
-        width: 300,
-        height: 80,
-        onLoad: function(elem){
-            var params = "allData="+table.getSelectedTable();
-            params = params + "&search=Search";
-            var response = postRequest(params);
-            console.log(response);
-            var responseDiv = document.createElement("div");
-            $(responseDiv).html(response);
-            $(responseDiv).find('editorialTool').each(function(){
-                var listItem = $(this).text();
-                var line = listItem.indexOf("|");
-                var selectedListItem = listItem.substring(0,line);
-                var urlListItem = listItem.substring(line+1);
-                $("#entireList").html(selectedListItem);
-                //$("#list").dataTable().fnAddData([selectedListItem,urlListItem]);
-            });
-
-        },
-        onUnload: function(elem){
-            
-        },
-        template: '<center>' + 
-                  '<div id="entireList"> </div>' +
-                  '</center>'
-
-    });*/
     $("#createTable").click(function(){
         $("#tableName").removeAttr("disabled");
         $("#submitName").removeAttr("disabled");
@@ -155,26 +127,27 @@ $(document).ready(function(){
         if(response){
             console.log(response);
             var responseDiv = document.createElement("div");
-            var data = [];
+            var csvData = new Array();
+            csvData.push(selectedTable);
+
             $(responseDiv).html(response);
             $(responseDiv).find('editorialTool').each(function(){
                 var listItem = $(this).text();
                 var line = listItem.indexOf("|");
                 var selectedListItem = listItem.substring(0,line);
                 var urlListItem = listItem.substring(line+1);
-                data.push([selectedListItem,urlListItem]);
+                csvData.push(selectedListItem);
             });
 
-            var csvContent = "data:text/csv;charset=utf-8";
-            data.forEach(function(infoArray,index){
-                dataString = infoArray.join(",");
-                csvContent += index < infoArray.length ? dataString + "\n" : dataString;
-            });
-            var encodedUri = encodeURI(csvContent);
+            var buffer = csvData.join("\n");
+            var uri = "data:text/csv;charset=utf8," + encodeURIComponent(buffer);
+            var fileName = "edTool_"+selectedTable+".csv";
             var link = document.createElement("a");
-            link.setAttribute("href",encodedUri);
-            link.setAttribute("download","edTool_"+selectedTable+".csv");
-            link.click();
+            if(link.download !== undefined){
+                link.setAttribute("href",uri);
+                link.setAttribute("download",fileName);
+                link.click();
+            } 
         }
 
     });

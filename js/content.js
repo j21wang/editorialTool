@@ -216,6 +216,7 @@ function popUp(){
     var add = document.createElement("div");
     $("body").append(add);
     $($(add)[0]).css("background-color","gray")
+             .css("opacity","0.8")
              .css("width","300px")
              .css("height","70px")
              .css("position","fixed")
