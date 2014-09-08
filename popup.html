@@ -2,64 +2,16 @@
 <html>
   <head>
     <title>Getting Started Extension's Popup</title>
-    <style>
-        html{
-            height:230px;
-        }
-        body{
-            width:700px;
-            height:230px;
-            font-family:'Alegreya Sans','sans-serif';
-            font-size:13px;
-        }
-        #tableText{
-            width:200px;
-        }
-        .dataTable td{
-            max-width:240px;
-            min-width:240px;
-            overflow:hidden;
-            text-overflow: ellipsis;
-            white-space:nowrap;
-        }
-        #rightContainer{
-            position:relative;
-            width:500px;
-            bottom:272px;
-            left:180px;
-            height:180px;
-        }
-        #radioContainer{
-            border:thin solid lightGrey;
-            border-radius:3px;
-            height:240px;
-            width:160px;
-            overflow-y:scroll;
-        }
-        #leftContainer{
-            position:relative;
-            top:10px;
-            left:5px;
-        }
-        #tableName{
-            width:100px;
-        }
-        #container{
-            height:320px;
-            overflow:hidden;
-        }
-    </style>
     <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Alegreya+Sans" />
     <link rel="stylesheet" type="text/css" href="lib/iCheck/skins/flat/blue.css" />
     <link rel="stylesheet" type="text/css" href="lib/datatables/media/css/jquery.dataTables.css" />
     <link rel="stylesheet" type="text/css" href="lib/sidr/dist/stylesheets/jquery.sidr.dark.css" />
-    <!--<link rel="stylesheet" type="text/css" href="lib/avgrund/style/avgrund.css" />-->
+    <link rel="stylesheet" type="text/css" href="css/main.css" />
     <script type="text/javascript" src="js/jquery-2.0.2.min.js"></script>
     <script type="text/javascript" src="lib/iCheck/icheck.js"></script>
     <script type="text/javascript" src="js/popup.js"></script>
     <script type="text/javascript" src="lib/datatables/media/js/jquery.dataTables.js"></script> 
     <script type="text/javascript" src="lib/sidr/dist/jquery.sidr.js"></script>
-    <!--<script type="text/javascript" src="lib/avgrund/jquery.avgrund.js"></script>-->
   </head>
   <body>
       <div id="container">
@@ -70,7 +22,8 @@
           <button id="createTable">New Table</button>
           <button id="deleteTable">Delete Table</button>
           <br>
-          <input type="text" id="tableName" disabled="disabled"><button id="submitName" disabled="disabled">Submit</button>
+          <input type="text" id="tableName" disabled="disabled">
+          <button id="submitName" disabled="disabled">Submit</button>
       </div>
       <div class="verticalLine"></div>
       <div id="rightContainer">
@@ -79,16 +32,15 @@
           <button id="csv">Generate CSV</button>
           <table id="list" cellpadding="0" cellspacing="0" border="0" class="display" width="100%">
               <thead>
-                  <th> Selected </th>
-                  <th> URL </th>
+                  <th>Selected</th>
+                  <th>URL</th>
               </thead>
           </table>
           <br>
           <button id="deleteEntry">Delete Entry</button>
           <button id="addEntry">Add Entry</button>
-          <input type="text" id="entry" disabled="disabled"><button id="submitEntry" disabled="disabled">Submit</button>
-          <!--<div id="tableText"></div>-->
-          <!--<button id="viewAll">View All</button>-->
+          <input type="text" id="entry" disabled="disabled">
+          <button id="submitEntry" disabled="disabled">Submit</button>
       </div>
       </div>
   </body>

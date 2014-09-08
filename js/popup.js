@@ -1,36 +1,32 @@
 var isGroupMode = true;
 var isLimitCheck = true;
 var oTable;
+
 $(document).ready(function(){
 
     select.loadTables();
-    console.log(localStorage);
     var selectedTable;
-    console.log($(".checked").length);
     if($(".checked").length == 0 || localStorage === undefined || localStorage.length == 0){
-        if($($(".iradio_flat-blue")[0]).next()[0]!==undefined){
+        if($($(".iradio_flat-blue")[0]).next()[0] !== undefined){
             selectedTable = $($(".iradio_flat-blue")[0]).next()[0].innerText;
             $($(".iradio_flat-blue")[0]).addClass("checked");
-            console.log(selectedTable);
         }
     } else {
         selectedTable = localStorage.selectedTable;
-        console.log(selectedTable);
     }
     isGroupMode = localStorage.isGroupCheck;
     if(isGroupMode=="true"){
-        $("#groupCheck").prop("checked",true);
+        $("#groupCheck").prop("checked", true);
     } else {
-        $("#groupCheck").prop("checked",false);
+        $("#groupCheck").prop("checked", false);
     }
     isLimitCheck = localStorage.isLimitCheck;
     if(isLimitCheck=="true"){
-        $("#allResultsCheck").prop("checked",true);
+        $("#allResultsCheck").prop("checked", true);
     } else {
-        $("#allResultsCheck").prop("checked",false);
+        $("#allResultsCheck").prop("checked", false);
     }
     table.switchTables(selectedTable);
-    console.log(selectedTable);
     oTable = table.initializeTable();
     table.getTableData(selectedTable);
 
@@ -46,16 +42,13 @@ $(document).ready(function(){
     });
 
     $("ins.iCheck-helper").click(function(){
-        console.log(localStorage);
         selectedTable = table.getSelectedTable();
-        console.log(selectedTable);
         table.switchTables(selectedTable);
         table.getTableData(selectedTable);
     });
 
     $("#deleteTable").click(function(){
         selectedTable = table.getSelectedTable(); 
-        console.log(selectedTable);
         table.deleteTable(selectedTable);
         window.location.reload();
     });
@@ -74,7 +67,6 @@ $(document).ready(function(){
         if($(this).hasClass('row_selected')){
             $(this).removeClass('row_selected')
         } else {
-            console.log($(".row_selected"));
             oTable.$('tr.row_selected').removeClass('row_selected');
             $(this).addClass('row_selected');
         }
@@ -89,32 +81,23 @@ $(document).ready(function(){
         var row = $(anSelected[0])[0];
         var rowText = $(row).children()[0].innerText;
         var rowURL = $(row).children()[1].innerText;
-        console.log(rowText);
-        console.log(rowURL);
         var params = "deleteEntry="+rowText+"#"+rowURL;    
         params = params + "&selectedTable=" + selectedTable;
         var response = postRequest(params);
         if(response){
-            //$("#tables option:selected").remove();
-            console.log(response);
-            console.log($("#radioButtons #"+selectedTable));
             $("#radioButtons #"+selectedTable).remove();
         }
     });
 
     $("#addEntry").click(function(){
-        console.log("HI");
         $("#entry").removeAttr("disabled");
         $("#submitEntry").removeAttr("disabled");
         $("#submitEntry").click(function(){
-            console.log("EHH");
             var entry = $("#entry").val();
-            console.log(entry);
             var params = "addEntry="+entry;    
             params = params + "&selectedTable=" + selectedTable;
             var response = postRequest(params);
             if(response){
-                console.log(response);
                 window.location.reload();
             }
         });
@@ -125,7 +108,6 @@ $(document).ready(function(){
         params = params + "&search=Search";
         var response = postRequest(params);
         if(response){
-            console.log(response);
             var responseDiv = document.createElement("div");
             var csvData = new Array();
             csvData.push(selectedTable);
@@ -174,8 +156,6 @@ var table = {
         var params = "deleteTable="+selectedTable;    
         var response = postRequest(params);
         if(response){
-            //$("#tables option:selected").remove();
-            console.log($("#radioButtons #"+selectedTable));
             $("#radioButtons #"+selectedTable).remove();
         }
     },
@@ -201,7 +181,6 @@ var table = {
         $("#list").dataTable().fnClearTable();
         var response = postRequest(params);
         if(response){
-            console.log(response);
             var responseDiv = document.createElement("div");
             $(responseDiv).html(response);
             $(responseDiv).find('editorialTool').each(function(){
@@ -229,7 +208,6 @@ var select = {
    addRadioButton: function(tablesArr){
         for(var i=0; i<tablesArr.length; i++){
             var entry = tablesArr[i];
-            console.log(localStorage);
             if(entry == localStorage.selectedTable){
                 $("#radioButtons").append('<input type="radio" id='+entry+' name="iCheck" checked><label>'+entry+'</label><br>');
             } else {
@@ -242,8 +220,7 @@ var select = {
    initializePlugin: function(elementID){
         $("#"+elementID).iCheck({
             checkboxClass: 'icheckbox_flat-blue',
-            radioClass: 'iradio_flat-blue',
-            //insert:'<div class="icheck_line-icon"></div>'+elementID
+            radioClass: 'iradio_flat-blue'
         });
    },
 
