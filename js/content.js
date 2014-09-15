@@ -17,6 +17,7 @@ $(document).ready(function(){
 });
 
 function getSelectionHTML(sel){
+  console.log(sel);
   var container = document.createElement("div");
   for (var i = 0, len = sel.rangeCount; i < len; ++i) {
     container.appendChild(sel.getRangeAt(i).cloneContents());
@@ -61,19 +62,32 @@ function markAsAdded(html,isImage){
   } 
 }
 
-function getPathTo(element) {
-  if (element.id !== '') return 'id("'+element.id+'")';
-  if (element === document.body) return element.tagName;
-  var ix= 0;
-  var siblings= element.parentNode.childNodes;
-  for (var i= 0; i<siblings.length; i++) {
-    var sibling= siblings[i];
-    if (sibling===element)
-      return getPathTo(element.parentNode)+'/'+element.tagName+'['+(ix+1)+']';
-    if (sibling.nodeType===1 && sibling.tagName===element.tagName)
-      ix++;
-  }
-}
+function getPathTo(elm) { 
+  var allNodes = document.getElementsByTagName('*'); 
+  for (var segs = []; elm && elm.nodeType == 1; elm = elm.parentNode) { 
+    if (elm.hasAttribute('id')) { 
+      var uniqueIdCount = 0; 
+      for (var n=0;n < allNodes.length;n++) { 
+        if (allNodes[n].hasAttribute('id') && allNodes[n].id == elm.id) uniqueIdCount++; 
+        if (uniqueIdCount > 1) break; 
+      }; 
+      if ( uniqueIdCount == 1) { 
+        segs.unshift('id("' + elm.getAttribute('id') + '")'); 
+        return segs.join('/'); 
+      } else { 
+        segs.unshift(elm.localName.toLowerCase() + '[@id="' + elm.getAttribute('id') + '"]'); 
+      } 
+    } else if (elm.hasAttribute('class')) { 
+      segs.unshift(elm.localName.toLowerCase() + '[@class="' + elm.getAttribute('class') + '"]'); 
+    } else { 
+      for (i = 1, sib = elm.previousSibling; sib; sib = sib.previousSibling) { 
+        if (sib.localName == elm.localName)  i++; 
+      }; 
+      segs.unshift(elm.localName.toLowerCase() + '[' + i + ']'); 
+    }; 
+  }; 
+  return segs.length ? '/' + segs.join('/') : null; 
+};
 
 function highlight(e){
   var html = "";
@@ -102,22 +116,28 @@ function highlight(e){
         addToList(html);
         markAsAdded(html,isImage);
         pathToSelected = getPathTo(temp);
+        console.log(pathToSelected);
       }
 
       var result = findSelectedTag(pathToSelected);
+      console.log(result);
       var tagArr = makeTagArr(pathToSelected,result);
       if(queue.length >= 3 && groupMode) queue = [];
       queue.push(tagArr);
       if(queue.length >= 3 && groupMode){
         var prefixObject = findSimilarPrefix(queue);
+        console.log(prefixObject);
         var isDifferent = checkSimilarTags(prefixObject.prefixArr);
         if(!isDifferent){
           var prePrefixElement = prefixObject.prePrefixElement;
+          console.log(prePrefixElement);
           var prefixArr = prefixObject.prefixArr;
+          console.log(prefixArr);
           var prePrefix = $(prePrefixElement[0] + ":eq(" + prePrefixElement[1] + ")");
           var sameElement = prefixObject.sameElement;
           var foundSame = false;
           var elementsPathArr = [];
+          // push all elements into array after the first element they share
           for(var i = 0; i < queue[0].length; i++){
             var prePrefixTag = $($(prePrefix)[0]).prop("tagName").toLowerCase();
             var queueTag = $(queue[0][i][0] + ":eq(" + queue[0][i][1] + ")");
@@ -127,11 +147,14 @@ function highlight(e){
           var targetElement = $(prePrefix)[0];
           if(prePrefixElement[0] == "tbody" || prePrefixElement[0] == "table"){
             var path = findSimilar(targetElement,elementsPathArr,prefixObject,true);
+            console.log(path);
             highlightSimilar(targetElement,path);
           } else {
             var path = findSimilar(targetElement,elementsPathArr,prefixObject,false);
+            console.log(path);
             highlightSimilar(targetElement,path);
           }
+          console.log(elementsPathArr);
         } else {
             //do nothing
         }
@@ -303,6 +326,7 @@ function findSelectedTag(pathToSelected){
 function makeTagArr(pathToSelected,result){
   var backwardsPath = pathToSelected;
   var originalTagName = $(result).prop("tagName");
+  console.log(originalTagName);
   var currentTagName = $(result).prop("tagName").toLowerCase();
   var siblingIndex = $(result).index();
   var documentIndex = $(currentTagName).index(result);
