@@ -5,19 +5,60 @@ var temp;
 var isImg;
 
 $(document).ready(function(){
+
+  // Sometimes when trying to draw the line to highlight something,
+  // the user may accidentally click on the link (if it is a link).
+  // To avoid this problem, hold down the "enter" key to disable
+  // all the click events on the page.
+  $(document).keydown(function(e) {
+    if (e.which == 13) {
+      document.addEventListener("click", handler, true);
+      console.log("enter");
+    }
+  });
+
+  // Once the "enter" key is released, the click events are reenabled.
+  $(document).keyup(function(e) {
+    if (e.which == 13) {
+      document.removeEventListener("click", handler, true);
+    }
+  });
+
+  drag();
   chrome.runtime.onMessage.addListener(
     function(message, sender, sendResponse){
       groupMode = message.isGroupCheck;
         sendResponse(message);
     });
-
-    $(document).keypress(function(e){
-      if(e.which == 13) highlight(e);
-    });
 });
 
+function drag() {
+  $( document )
+      .drag("start",function( ev, dd ){
+        return $('<div class="selection" />')
+            .css('position', 'absolute')
+            .css('border', 'thin solid black')
+            .css('opacity', .65 )
+            .appendTo( document.body );
+      })
+      .drag(function( ev, dd ){
+        $( dd.proxy ).css({
+            top: Math.min( ev.pageY, dd.startY ),
+            left: Math.min( ev.pageX, dd.startX ),
+            //height: Math.abs( ev.pageY - dd.startY ),
+            width: Math.abs( ev.pageX - dd.startX )
+        });
+      })
+      .drag("end",function( ev, dd ){
+        var rect =  $('.selection')[0].getBoundingClientRect();
+        $( dd.proxy ).remove();
+        var element = document.elementFromPoint(
+            rect.left + rect.width / 2, rect.top);
+        highlight(element);
+      });
+}
+
 function getSelectionHTML(sel){
-  console.log(sel);
   var container = document.createElement("div");
   for (var i = 0, len = sel.rangeCount; i < len; ++i) {
     container.appendChild(sel.getRangeAt(i).cloneContents());
@@ -42,24 +83,17 @@ function checkImage(htmlChildren){
 }
 
 function markAsAdded(html,isImage){
-  var range = window.getSelection().getRangeAt(0);
-  var span = document.createElement("span");
-  range.insertNode(span);
+  $(html).addClass('recentAdded');
   if(!isImage){
-    $($(span).parent())
-        .addClass("added")
-        .css("border","2px solid red")
-        .css("border-radius","3px");
-    temp = $(span).parent()[0];
-    $(span).remove();
+    $('.recentAdded').css("border","2px solid red");
   } else {
-    $($(span).parent()).find("img")
-        .addClass("added")
-        .css("border","2px solid red")
-        .css("border-radius","3px");
-    temp = $($(span).parent()).find("img")[0];
-    $(span).remove();
+    $('.recentAdded').find("img").css("border","2px solid red");
   } 
+}
+
+function handler(e) {
+    e.stopPropagation();
+    e.preventDefault();
 }
 
 function getPathTo(elm) { 
@@ -68,20 +102,20 @@ function getPathTo(elm) {
     if (elm.hasAttribute('id')) { 
       var uniqueIdCount = 0; 
       for (var n=0;n < allNodes.length;n++) { 
-        if (allNodes[n].hasAttribute('id') && allNodes[n].id == elm.id) uniqueIdCount++; 
+        if (allNodes[n].hasAttribute('id') && allNodes[n].id == elm.id)
+          uniqueIdCount++; 
         if (uniqueIdCount > 1) break; 
       }; 
       if ( uniqueIdCount == 1) { 
         segs.unshift('id("' + elm.getAttribute('id') + '")'); 
         return segs.join('/'); 
       } else { 
-        segs.unshift(elm.localName.toLowerCase() + '[@id="' + elm.getAttribute('id') + '"]'); 
+        segs.unshift(elm.localName.toLowerCase() +
+            '[@id="' + elm.getAttribute('id') + '"]'); 
       } 
-    } else if (elm.hasAttribute('class')) { 
-      segs.unshift(elm.localName.toLowerCase() + '[@class="' + elm.getAttribute('class') + '"]'); 
     } else { 
       for (i = 1, sib = elm.previousSibling; sib; sib = sib.previousSibling) { 
-        if (sib.localName == elm.localName)  i++; 
+        if (sib.localName == elm.localName) i++; 
       }; 
       segs.unshift(elm.localName.toLowerCase() + '[' + i + ']'); 
     }; 
@@ -89,76 +123,76 @@ function getPathTo(elm) {
   return segs.length ? '/' + segs.join('/') : null; 
 };
 
-function highlight(e){
+function highlight(selection){
   var html = "";
-  var isImage = checkImage(window.getSelection().extentNode.children);    
-  if (window.getSelection().toString() != "" || isImage) {
-    $(".highlighted")
-        .css("background-color","transparent")
-        .css("border","none")
-        .removeClass("highlighted");
-    $("#box").remove();
-    var selection = window.getSelection();
-    if (selection.rangeCount > 0){
-      var html = getSelectionHTML(selection);
-      var anchorNode = selection.anchorNode;
-      var pathToSelected;
-      var added;
+  var isImage = false;
+  console.log(selection);
+  var html = $(selection);
+  var text = html[0].innerText.trim();
+  console.log(text);
+  var pathToSelected;
+  var added;
 
-      if(html.indexOf('<img') != -1){
-        isImg = true;
-        var src = $(html).attr("src");
-        addToList(src);
-        markAsAdded(html,isImage);
-        pathToSelected = "/html/body//img[@src='"+src+"']";
+  if(text.indexOf('<img') != -1){
+    isImg = true;
+    var src = $(html).attr("src");
+    addToList(src);
+    markAsAdded(html,isImage);
+    pathToSelected = "/html/body//img[@src='"+src+"']";
+  } else {
+    isImg = false;
+    console.log(html);
+    addToList(text);
+    markAsAdded(html,isImage);
+    pathToSelected = getPathTo(selection);
+    console.log(pathToSelected);
+  }
+
+  var result = findSelectedTag(pathToSelected);
+  console.log(result);
+  var tagArr = makeTagArr(pathToSelected,result);
+  if(queue.length >= 3 && groupMode) queue = [];
+  queue.push(tagArr);
+  if(queue.length >= 3 && groupMode){
+    var prefixObject = findSimilarPrefix(queue);
+    console.log(prefixObject);
+    var isDifferent = checkSimilarTags(prefixObject.prefixArr);
+    if(!isDifferent){
+      var prePrefixElement = prefixObject.prePrefixElement;
+      console.log(prePrefixElement);
+      var prefixArr = prefixObject.prefixArr;
+      console.log(prefixArr);
+      var prePrefix = $(prePrefixElement[0] + ":eq(" + prePrefixElement[1] + ")");
+      var sameElement = prefixObject.sameElement;
+      var foundSame = false;
+      var elementsPathArr = [];
+      // push all elements into array after the first element they share
+      console.log(queue);
+      for(var i = 0; i < queue[0].length; i++){
+        var prePrefixTag = $($(prePrefix)[0]).prop("tagName").toLowerCase();
+        console.log(prePrefixTag);
+        var queueTag = $(queue[0][i][0] + ":eq(" + queue[0][i][1] + ")");
+        console.log(queueTag);
+        if(foundSame) elementsPathArr.push(queue[0][i]);
+        if($(queueTag)[0] == $(prePrefix)[0]) foundSame = true;
+      }
+      console.log(prePrefix);
+      var targetElement = $(prePrefix)[0];
+      if(prePrefixElement[0] == "tbody" || prePrefixElement[0] == "table"){
+        var path = findSimilar(targetElement,elementsPathArr,prefixObject,true);
+        console.log(path);
+        highlightSimilar(targetElement,path);
       } else {
-        isImg = false;
-        addToList(html);
-        markAsAdded(html,isImage);
-        pathToSelected = getPathTo(temp);
-        console.log(pathToSelected);
-      }
-
-      var result = findSelectedTag(pathToSelected);
-      console.log(result);
-      var tagArr = makeTagArr(pathToSelected,result);
-      if(queue.length >= 3 && groupMode) queue = [];
-      queue.push(tagArr);
-      if(queue.length >= 3 && groupMode){
-        var prefixObject = findSimilarPrefix(queue);
+        console.log(targetElement);
+        console.log(elementsPathArr);
         console.log(prefixObject);
-        var isDifferent = checkSimilarTags(prefixObject.prefixArr);
-        if(!isDifferent){
-          var prePrefixElement = prefixObject.prePrefixElement;
-          console.log(prePrefixElement);
-          var prefixArr = prefixObject.prefixArr;
-          console.log(prefixArr);
-          var prePrefix = $(prePrefixElement[0] + ":eq(" + prePrefixElement[1] + ")");
-          var sameElement = prefixObject.sameElement;
-          var foundSame = false;
-          var elementsPathArr = [];
-          // push all elements into array after the first element they share
-          for(var i = 0; i < queue[0].length; i++){
-            var prePrefixTag = $($(prePrefix)[0]).prop("tagName").toLowerCase();
-            var queueTag = $(queue[0][i][0] + ":eq(" + queue[0][i][1] + ")");
-            if(foundSame) elementsPathArr.push(queue[0][i]);
-            if($(queueTag)[0] == $(prePrefix)[0]) foundSame = true;
-          }
-          var targetElement = $(prePrefix)[0];
-          if(prePrefixElement[0] == "tbody" || prePrefixElement[0] == "table"){
-            var path = findSimilar(targetElement,elementsPathArr,prefixObject,true);
-            console.log(path);
-            highlightSimilar(targetElement,path);
-          } else {
-            var path = findSimilar(targetElement,elementsPathArr,prefixObject,false);
-            console.log(path);
-            highlightSimilar(targetElement,path);
-          }
-          console.log(elementsPathArr);
-        } else {
-            //do nothing
-        }
+        var path = findSimilar(targetElement,elementsPathArr,prefixObject,false);
+        console.log(path);
+        highlightSimilar(targetElement,path);
       }
+      console.log(elementsPathArr);
+    } else {
+        //do nothing
     }
   }
 }
@@ -207,7 +241,6 @@ function addAllToDB(originalBackground){
       console.log("Adding all to DB");
       $(".highlighted")
           .css("background-color",originalBackground)
-          .css("border-color","red")
           .css("border","2px solid red")
           .addClass("added")
           .removeClass("highlighted");
@@ -246,6 +279,7 @@ function findSimilar(targetElement,elementsPathArr,prefixObject,isTable){
   var path = "";
   var siblingNumber;
   var prefixArr = prefixObject.prefixArr;
+  console.log(prefixArr);
   var sameElement = prefixObject.sameElement;
   for(var i=0; i<elementsPathArr.length; i++){
     var pre = $(prefixArr[0][0] + ":eq(" + prefixArr[0][1] + ")");
@@ -272,11 +306,10 @@ function highlightSimilar(targetElement,str){
     var siblingNum = $(this).index();
     var found = $(this);
     originalBackground = $(this).css("background-color"); 
-    if(!$(found).hasClass("added")){
+    if(!$(found).hasClass("recentAdded") && !$(found).hasClass("added")){
         $(found)
             .addClass("highlighted")
             .css("background-color","yellow")
-            .css("border-radius","3px")
             .css("opacity",0.8)
             .css("border","2px solid yellow");
     }
@@ -372,6 +405,7 @@ function findSimilarPrefix(queue){
   var secondLength;
   var thirdLength;
 
+  console.log(queue);
   if(queue[0][queue[0].length-1][0] == queue[1][queue[1].length-1][0] &&
       queue[1][queue[1].length-1][0] == queue[2][queue[2].length-1][0] &&
       queue[0][queue[0].length-1][2] == queue[1][queue[1].length-1][2] &&
