@@ -470,12 +470,10 @@ function login(username) {
 function displayLoginMask() {
   $('#container').append('<div id="loginMask"></div>');
   $('#loginMask').fadeIn(300);
-  $('#loginMask').append('<div style="position: relative; top: 70px"' +
+  $('#loginMask').append('<div style="position: relative; top: 80px"' +
       'id="loginContainer"></div>');
   $('#loginContainer').append('<center><h1 id="editorialTool">' +
       'Editorial Tool</h1></center>');
   $('#loginContainer').append('<center><a href="#login-box"' +
       'class="login-window button">Login</a></center>');
-  $('#loginContainer').append('<center><a class="about button">' +
-      'About</a></center>');
 }
