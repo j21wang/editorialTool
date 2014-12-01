@@ -19,3 +19,9 @@
   top: 20px;
   width: 90px;
 }
+
+.highlighted {
+  background-color: yellow;
+  border: 2px solid yellow;
+  opacity: 0.8;
+}

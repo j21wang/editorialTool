@@ -1,16 +1,31 @@
-var queue = new Array();
+// queue contains the 3 highlighted elements
+var queue = [];
+
+// when groupMode is turned on, similar elements will highlight
+// after 3 elements are highlighted
 var groupMode = true;
+
+// checks whether the tool is turned on (if the user can drag)
 var toolOn = true;
-var isImg;
+
+// checks if popup from adding all to DB is already displayed
 var isPopUp = false;
+
+// need original background if user cancels highlight
 var originalBackground = null;
+
+// checks if what's highlighted is an image
+var isImg;
+
 var Events = {
   ENTER: 13,
   LEFT_MOUSE: 1
 };
+
 var Config = {
   LINE_LENGTH: 20,
-  MIN_NUM_HIGHLIGHTED: 3
+  MIN_NUM_HIGHLIGHTED: 3,
+  THRESHOLD_PERCENTAGE: 0.4
 };
 
 $(document).ready(function(){
@@ -25,18 +40,6 @@ $(document).ready(function(){
       turnToolOff();
     }
   });
-
-  /*chrome.runtime.onMessage.addListener(function(message, sender, sendResponse){
-    groupMode = message.isGroupCheck;
-    toolOn = message.toolOn;
-    sendResponse(message);
-    if (toolOn == true || toolOn == 'true') {
-      turnToolOn();
-      window.location.reload();
-    } else {
-      turnToolOff();
-    }
-  });*/
 });
 
 function turnToolOn() {
@@ -104,44 +107,26 @@ function drag() {
       });
 }
 
-function getSelectionHTML(sel){
-  var container = document.createElement('div');
-  for (var i = 0, len = sel.rangeCount; i < len; ++i) {
-    container.appendChild(sel.getRangeAt(i).cloneContents());
-  }
-  var target = $(container);
-  if($(sel.anchorNode).find('img').length > 0){
-    isImg = true;
-    return container.innerHTML;
-  } else {
-    isImg = false;
-    return $(target)[0].innerText.trim();
-  }
-}
-
-function checkImage(htmlChildren){
-  var isImage = false;
-  $(htmlChildren).each(function(){
-    var tagName = $($(this)[0]).prop('tagName').toLowerCase();
-    if(tagName == 'img') isImage = true;
-  });
-  return isImage;
-}
-
-function markAsAdded(html,isImage){
+/**
+ * Adds a red border around the element that has been added already.
+ */
+function markElementAsAdded(html) {
   $(html).addClass('recentAdded');
-  if(!isImage){
-    $('.recentAdded').css('border','2px solid red');
-  } else {
-    $('.recentAdded').find('img').css('border','2px solid red');
-  } 
+  $('.recentAdded').css('border', '2px solid red');
 }
 
+/**
+ * Handler to disable click events when the user is dragging
+ * across something clickable.
+ */
 function handler(e) {
   e.stopPropagation();
   e.preventDefault();
 }
 
+/**
+ * Gets the path to a specified element.
+ */
 function getPathTo(elm) { 
   var allNodes = document.getElementsByTagName('*'); 
   for (var segs = []; elm && elm.nodeType == 1; elm = elm.parentNode) { 
@@ -154,29 +139,30 @@ function getPathTo(elm) {
 };
 
 function highlight(htmlSelection){
-  var isImage = false;
   var html = $(htmlSelection);
   var text = htmlSelection.innerText.trim();
   var pathToSelected;
-  var added;
 
-  if(text.indexOf('<img') != -1){
+  if(html[0].tagName == "IMG"){
     isImg = true;
-    var src = $(html).attr("src");
+    var src = $(html).attr('src');
     addToList(src);
-    markAsAdded(html,isImage);
-    pathToSelected = "/html/body//img[@src='"+src+"']";
+    markElementAsAdded(html);
+    pathToSelected = '/html/body//img[@src="' + src + '"]';
   } else {
     isImg = false;
     addToList(text);
-    markAsAdded(html,isImage);
+    markElementAsAdded(html);
     pathToSelected = getPathTo(htmlSelection);
   }
 
   var result = findSelectedTag(pathToSelected);
   var tagArr = makeTagArr(pathToSelected,result);
+  // queue is cleared after 3 elements are highlighted
   if(queue.length >= Config.MIN_NUM_HIGHLIGHTED &&
-      (groupMode == "true" || groupMode == true)) queue = [];
+      (groupMode == "true" || groupMode == true)) {
+    queue = [];
+  }
   queue.push(tagArr);
   if(queue.length >= Config.MIN_NUM_HIGHLIGHTED &&
       (groupMode == "true" || groupMode == true)){
@@ -184,51 +170,63 @@ function highlight(htmlSelection){
     var isDifferent = checkSimilarTags(prefixObject.prefixArr);
     if(!isDifferent){
       var prePrefixElement = prefixObject.prePrefixElement;
-      var prefixArr = prefixObject.prefixArr;
-      var prePrefix = $(prePrefixElement[0] + ":eq(" + prePrefixElement[1] + ")");
+      var prePrefixSelection = $(prePrefixElement[0] + ":eq(" + prePrefixElement[1] + ")");
       var sameElement = prefixObject.sameElement;
-      var foundSame = false;
       var elementsPathArr = [];
-      var one = [];
-      var two = [];
-      var three = [];
-      // push all elements into array after the first element they share
+      var firstHighlighted = [];
+      var secondHighlighted = [];
+      var thirdHighlighted = [];
+
+      // push all elements into array after their first common parent element
+      var foundSame = false;
       for(var i = 0; i < queue[0].length; i++){
-        var prePrefixTag = $($(prePrefix)[0]).prop("tagName").toLowerCase();
+        var prePrefixTag = $($(prePrefixSelection)[0])
+            .prop("tagName").toLowerCase();
         var queueTag = $(queue[0][i][0] + ":eq(" + queue[0][i][1] + ")");
-        if(foundSame) one.push(queue[0][i]);
-        if($(queueTag)[0] == $(prePrefix)[0]) foundSame = true;
+        if(foundSame) firstHighlighted.push(queue[0][i]);
+        if($(queueTag)[0] == $(prePrefixSelection)[0]) foundSame = true;
       }
+
       foundSame = false;
       for(var i = 0; i < queue[1].length; i++){
-        var prePrefixTag = $($(prePrefix)[0]).prop("tagName").toLowerCase();
+        var prePrefixTag = $($(prePrefixSelection)[0])
+            .prop("tagName").toLowerCase();
         var queueTag = $(queue[1][i][0] + ":eq(" + queue[1][i][1] + ")");
-        if(foundSame) two.push(queue[1][i]);
-        if($(queueTag)[0] == $(prePrefix)[0]) foundSame = true;
+        if(foundSame) secondHighlighted.push(queue[1][i]);
+        if($(queueTag)[0] == $(prePrefixSelection)[0]) foundSame = true;
       }
+
       foundSame = false;
       for(var i = 0; i < queue[2].length; i++){
-        var prePrefixTag = $($(prePrefix)[0]).prop("tagName").toLowerCase();
+        var prePrefixTag = $($(prePrefixSelection)[0])
+            .prop("tagName").toLowerCase();
         var queueTag = $(queue[2][i][0] + ":eq(" + queue[2][i][1] + ")");
-        if(foundSame) three.push(queue[2][i]);
-        if($(queueTag)[0] == $(prePrefix)[0]) foundSame = true;
+        if(foundSame) thirdHighlighted.push(queue[2][i]);
+        if($(queueTag)[0] == $(prePrefixSelection)[0]) foundSame = true;
       }
-      elementsPathArr = [one, two, three];
-      var targetElement = $(prePrefix)[0];
+
+      elementsPathArr = [firstHighlighted, secondHighlighted, thirdHighlighted];
+      var targetElement = $(prePrefixSelection)[0];
+      // Need special case for tables because users will often want to
+      // only highlight all the entries of one column in the table. Otherwise
+      // the entire table or multiple columns could potentially highlight
+      // if the elements in the table have the same tag name.
       if(prePrefixElement[0] == "tbody" || prePrefixElement[0] == "table"){
-        var path = findSimilar(targetElement,elementsPathArr,prefixObject,true);
-        highlightSimilar(targetElement,path);
+        var path = constructPath(elementsPathArr, prefixObject, true);
+        highlightSimilar(targetElement, path);
       } else {
-        var path = findSimilar(targetElement,elementsPathArr,prefixObject,false);
-        highlightSimilar(targetElement,path);
+        var path = constructPath(elementsPathArr, prefixObject, false);
+        highlightSimilar(targetElement, path);
       }
-    } else {
-        //do nothing
     }
   }
 }
 
-function popUp(){
+/**
+ * Displays the pop up dialog that asks the user what he wants to
+ * do with the multiple highlighted elements.
+ */
+function displayPopup(){
   var add = $("body").append("<div id='popup'></div>");
   $("#popup")
       .css("background-color","gray")
@@ -242,6 +240,9 @@ function popUp(){
       .css("border-radius","3px")
       .attr("id","box");
 
+  // The "Add Some" button allows the user to manually add
+  // the highlighted elements one by one by hovering over a
+  // highlighted element.
   $("<center>" + 
       "<p id='selectText'>Add all to selected table?</p>" +
       "<button class='popupButton' id='okButton'>Add All</button>" +
@@ -250,77 +251,91 @@ function popUp(){
       "</center>").appendTo("#box");
 }
 
+/**
+ * Triggers after 3 similar elements are highlighted and other similar
+ * elements on the page are automatically highlighted.
+ */
 function addAllToDB(originalBackground){
   if($('.highlighted').length > 0){
     if (!isPopUp) {
-      popUp();
+      displayPopup();
       isPopUp = true;
     }
-    var add = false;
+    // Add all to database.
     $("#okButton").click(function(){
-      add = true;
-      var addArr = [];
+      var entriesToAdd = [];
       isPopUp = false;
       $(".highlighted").each(function(){
         if(!isImg){
           var html = $(this).html();
           if(html.indexOf('"') > -1) html = html.replace(/"/g,"'");
-          if(html != "") addArr.push(html);
+          if(html != "") entriesToAdd.push(html);
         } else {
           var html = $(this).attr("src");
           if(html.indexOf('"') > -1) html = html.replace(/"/g,"'");
-          if(html != "") addArr.push(html);
+          if(html != "") entriesToAdd.push(html);
         }
       });
-      addToList(addArr);
-      $(".highlighted")
-          .css("background-color",originalBackground)
-          .css("border","2px solid red")
-          .addClass("added")
-          .removeClass("highlighted");
-       queue = [];
-       $("#box").remove();
+      addToList(entriesToAdd);
+      markAsAdded('.highlighted');
+      queue = [];
+      $("#box").remove();
     });
 
-    $("#addOneButton").click(function(){
+    // Add one at a time to database. User can hover over the
+    // highlighted elements one at a time if he wants to add that
+    // specific element to the database.
+    $('#addOneButton').click(function(){
       isPopUp = false;
-      $(".highlighted").hover(function(evt){
+      $('.highlighted').hover(function(evt) {
         var _this = this;
         setTimeoutConst = setTimeout(function(){
           addToList($(_this).html());
-          $(_this)
-              .css("background-color",originalBackground)
-              .css("border","2px solid red")
-              .addClass("added")
-              .removeClass("highlighted");
-        }, 1500);
-      }, function(){
+          markAsAdded(_this);
+        }, 1500); // user needs to over over for 1500 ms
+      }, function() {
         clearTimeout(setTimeoutConst);
       });
-      $("#box").remove();
+      $('#box').remove();
     });
 
-    $("#cancelButton").click(function(){
+    // Unhighlight all.
+    $('#cancelButton').click(function(){
       isPopUp = false;
-      $(".highlighted")
-        .css("background-color",originalBackground)
-        .css("border","none")
-        .removeClass("highlighted");
-      $("#box").remove();
+      $('.highlighted')
+        .css('background-color', originalBackground)
+        .css('border','none')
+        .removeClass('highlighted');
+      $('#box').remove();
     });
   }
 }
 
-function findSimilar(targetElement,elementsPathArr,prefixObject,isTable){
-  var path = "";
+/**
+ * Marks element on the page as added once it's in the database.
+ */
+function markAsAdded(selection) {
+  $(selection)
+      .css('background-color', originalBackground)
+      .css('border', '2px solid red')
+      .addClass('added')
+      .removeClass('highlighted');
+}
+
+/**
+ * Finds a common path from the 3 highlighted elements. The other
+ * elements on the page that have this path will be highlighted.
+ */
+function constructPath(elementsPathArr, prefixObject, isTable){
+  var path = '';
   var siblingNumber;
   var prefixArr = prefixObject.prefixArr;
   var sameElement = prefixObject.sameElement;
-  for(var i=0; i<elementsPathArr[0].length; i++){
-    var pre = $(prefixArr[0][0] + ":eq(" + prefixArr[0][1] + ")");
-    var ele = $(elementsPathArr[0][i][0] + ":eq(" + elementsPathArr[0][i][1] + ")");
-    path = path + " > " + elementsPathArr[0][i][0];
-    if(pre[0] == ele[0] || (isTable && elementsPathArr[0][i][0] == "td" &&
+  for(var i = 0; i < elementsPathArr[0].length; i++){
+    var pre = $(prefixArr[0][0] + ':eq(' + prefixArr[0][1] + ')');
+    var ele = $(elementsPathArr[0][i][0] + ':eq(' + elementsPathArr[0][i][1] + ')');
+    path = path + ' > ' + elementsPathArr[0][i][0];
+    if(pre[0] == ele[0] || (isTable && elementsPathArr[0][i][0] == 'td' &&
           elementsPathArr[0][i][2] == elementsPathArr[1][i][2] &&
           elementsPathArr[0][i][2] == elementsPathArr[2][i][2])){
       if(!sameElement){ // not the same element
@@ -329,60 +344,56 @@ function findSimilar(targetElement,elementsPathArr,prefixObject,isTable){
         siblingNumber = elementsPathArr[0][i][2] + 1;
       }
       if(pre[0] == ele[0]) {
-        path = path + ":nth-child("+siblingNumber+")";
+        path = path + ':nth-child(' + siblingNumber + ')';
         break;
       } else {
-        path = path + ":nth-child("+siblingNumber+")";
+        path = path + ':nth-child(' + siblingNumber + ')';
       }
     }
   }
   return path;
 }
 
-function highlightSimilar(targetElement,str){
-  var similarElementsArr = [];
-  $($(targetElement).find(str)).each(function(){
-    var tag = $($(this)[0]).prop("tagName").toLowerCase();
-    var siblingNum = $(this).index();
+/**
+ * Highlights other elements that are similar to the 3 that were
+ * manually highlighted by the user.
+ */
+function highlightSimilar(targetElement, path){
+  $($(targetElement).find(path)).each(function(){
     var found = $(this);
-    originalBackground = $(this).css("background-color"); 
-    if(!$(found).hasClass("recentAdded") && !$(found).hasClass("added")){
-        $(found)
-            .addClass("highlighted")
-            .css("background-color","yellow")
-            .css("opacity",0.8)
-            .css("border","2px solid yellow");
+    originalBackground = $(this).css('background-color'); 
+    if(!$(found).hasClass('recentAdded') && !$(found).hasClass('added')){
+        $(found).addClass('highlighted');
     }
   });
   addAllToDB(originalBackground); 
 }
 
+/**
+ * Checks for the similarity of the highlighted elements' paths.
+ * An element's depth in the dom must exceed a configured threshold
+ * for this to work. This is to avoid picking up elements that are
+ * too general.
+ */
 function checkSimilarTags(prefixArr){
   var isDifferent = false;
-  var threshold = 0.4;
-  for(var i=0; i<queue[0].length; i++){
-    if(arraysEqual(queue[0][i],prefixArr[0]) && !isDifferent){
-      if(i/queue[0].length >= threshold){
-        var selectedFirst = $(queue[0][i][0] + ":eq(" + queue[0][i][1] + ")");
-      } else {
+  for(var i = 0; i < queue[0].length; i++){
+    if(arraysEqual(queue[0][i], prefixArr[0]) && !isDifferent){
+      if(i / queue[0].length < Config.THRESHOLD_PERCENTAGE){
         isDifferent = true;
       }
     }
   }
   for(var i=0; i<queue[1].length; i++){
-    if(arraysEqual(queue[1][i],prefixArr[1]) && !isDifferent){
-      if(i/queue[1].length >= threshold){
-        var selectedSecond = $(queue[1][i][0] + ":eq(" + queue[1][i][1] + ")");
-      } else {
+    if(arraysEqual(queue[1][i], prefixArr[1]) && !isDifferent){
+      if(i / queue[1].length < Config.THRESHOLD_PERCENTAGE){
         isDifferent = true;
       }
     }
   }
   for(var i=0; i<queue[2].length; i++){
-    if(arraysEqual(queue[2][i],prefixArr[2]) && !isDifferent){
-      if(i/queue[2].length >= threshold){
-        var selectedThird = $(queue[2][i][0] + ":eq(" + queue[2][i][1] + ")");
-      } else {
+    if(arraysEqual(queue[2][i], prefixArr[2]) && !isDifferent){
+      if(i / queue[2].length < Config.THRESHOLD_PERCENTAGE){
         isDifferent = true;
       } 
     }
@@ -390,87 +401,106 @@ function checkSimilarTags(prefixArr){
   return isDifferent;
 }
 
-function findSelectedTag(pathToSelected){
-  var nodes = document.evaluate(pathToSelected, document, null, XPathResult.ANY_TYPE, null);
-  var result = nodes.iterateNext();
-  return result;
+function findSelectedTag(pathToSelected) {
+  var nodes = document.evaluate(pathToSelected, document, null,
+      XPathResult.ANY_TYPE, null);
+  return nodes.iterateNext();
 }
 
-function makeTagArr(pathToSelected,result){
+/**
+ * Makes an array of all the elements that are in the path
+ * to the highlighted element.
+ */
+function makeTagArr(pathToSelected, result) {
   var backwardsPath = pathToSelected;
-  var originalTagName = $(result).prop("tagName");
   var currentTagName = $(result).prop("tagName").toLowerCase();
   var siblingIndex = $(result).index();
   var documentIndex = $(currentTagName).index(result);
-  var indexArr = new Array();
-  var noIndexTagArr = new Array();
-  var indexTagArr = new Array();
-  indexTagArr.unshift([currentTagName,documentIndex,siblingIndex]);
+  var tagArr = [];
+  tagArr.unshift([currentTagName,documentIndex,siblingIndex]);
 
-  /* going backwards to html tag from selected tag */
+  // going backwards to html tag from selected tag
   while(currentTagName != "html"){
     backwardsPath = backwardsPath + "/parent::*";
-    var nodes = document.evaluate(backwardsPath, document, null, XPathResult.ANY_TYPE, null);
+    var nodes = document.evaluate(backwardsPath, document, null,
+        XPathResult.ANY_TYPE, null);
     var nodesResult = nodes.iterateNext();
     currentTagName = $(nodesResult).prop("tagName").toLowerCase();
-    siblingIndex = $(nodesResult).index(); //sibling number
-    documentIndex = $(currentTagName).index(nodesResult); //whole document
-    indexTagArr.unshift([currentTagName,documentIndex,siblingIndex]);
+    siblingIndex = $(nodesResult).index(); //sibling num
+    documentIndex = $(currentTagName).index(nodesResult); //whole document num
+    tagArr.unshift([currentTagName,documentIndex,siblingIndex]);
   }
-  return indexTagArr;
+  return tagArr;
 }
 
-function arraysEqual(a,b){
+/**
+ * Compares the contents of two arrays to determine whether
+ * or not they're equal.
+ */
+function arraysEqual(a, b){
   if(a === b) return true;
   if(a == null || b == null) return false;
   if(a.length != b.length) return false;
-  for(var i=0; i<a.length; ++i){
+  for(var i = 0; i < a.length; ++i){
     if(a[i] !== b[i]) return false;
   }
   return true;
 }
 
-function findSimilarPrefix(queue){
-  var i = 0;
-  var prefix;
-  var suffix;
-  var tagAfterPrefix;
-  var entered = false;
-
-  var prePrefixElement;
-  var prefixArr = [];
-  var sameElement = false;
-  var firstLength;
-  var secondLength;
-  var thirdLength;
-
-  if(queue[0][queue[0].length-1][0] == queue[1][queue[1].length-1][0] &&
-      queue[1][queue[1].length-1][0] == queue[2][queue[2].length-1][0] &&
-      queue[0][queue[0].length-1][2] == queue[1][queue[1].length-1][2] &&
-      queue[1][queue[1].length-1][2] == queue[2][queue[2].length-1][2]) {
-    firstLength = queue[0].length-1;
-    secondLength = queue[1].length-1;
-    thirdLength = queue[2].length-1;
-    sameElement = true;
-  } else {
-    firstLength = queue[0].length-1;
-    secondLength = queue[1].length-1;
-    thirdLength = queue[2].length-1;
-    sameElement = false;
+/**
+ * queue contains 3 arrays; each array contains the path to a
+ *   highlighted element
+ * queue[i] contains the array, which contains the path of the ith
+ *   element highlighted
+ * queue[i][queue[i].length - 1] is the highlighted element
+ * queue[i][queue[i].length - 1][0] is the highlighted element's tag
+ * queue[i][queue[i].length - 1][2] is the nth child number that element is
+ *   respective to its parent
+ * From the 3 elements highlighted consecutively, it checks if
+ * they all have the same tag name and are the same sibling number.
+ * If so, it means that the rest of the tags on the same webpage that
+ * follow the same pattern will eventually be highlighted as well.
+ */
+function isSameElement(queue) {
+  if(queue[0][queue[0].length - 1][0] == queue[1][queue[1].length - 1][0] &&
+      queue[1][queue[1].length - 1][0] == queue[2][queue[2].length - 1][0] &&
+      queue[0][queue[0].length - 1][2] == queue[1][queue[1].length - 1][2] &&
+      queue[1][queue[1].length - 1][2] == queue[2][queue[2].length - 1][2]) {
+    return true;
   }
+  return false;
+}
+
+/**
+ * Finds a similar prefix using the sibling numbers of the
+ * highlighted elements.
+ */
+function findSimilarPrefix(queue){
+  var foundSamePrefix = false;
+  // the first ancestor that contains the 3 highlighted elements
+  var prePrefixElement;
+  var commonPrefix = [];
+  var firstLength = queue[0].length - 1;
+  var secondLength = queue[1].length - 1;
+  var thirdLength = queue[2].length - 1;
+  var sameElement = isSameElement(queue);
 
   for(var j = firstLength; j >= 0; j--){
     for(var k = secondLength; k >= 0; k--){
-      for(var l = thirdLength; l>=0; l--){
+      for(var l = thirdLength; l >= 0; l--){
+        // Looks for the most specific common prefix from the
+        // 3 highlighted elements.
         if(queue[0][j][0] == queue[1][k][0] &&
             queue[0][j][0] == queue[2][l][0] &&
             queue[0][j][2] == queue[1][k][2] &&
-            queue[0][j][2] == queue[2][l][2] && !entered){
-           prefixArr.push(queue[0][j]);
-           prefixArr.push(queue[1][k]);
-           prefixArr.push(queue[2][l]);
-           entered = true;
+            queue[0][j][2] == queue[2][l][2] && !foundSamePrefix){
+           commonPrefix.push(queue[0][j]); // element tag name
+           commonPrefix.push(queue[1][k]); // element number
+           commonPrefix.push(queue[2][l]); // child number
+           foundSamePrefix = true;
          }
+         // Goes up the DOM to look for the first common element that
+         // contains the 3 highlighted elements.
          if(queue[0][j][0] == queue[1][k][0] &&
              queue[0][j][0] == queue[2][l][0] &&
              queue[0][j][1] == queue[1][k][1] &&
@@ -478,7 +508,7 @@ function findSimilarPrefix(queue){
            prePrefixElement = queue[0][j];
            var prefixObject = {
              prePrefixElement: prePrefixElement,
-             prefixArr: prefixArr,
+             prefixArr: commonPrefix,
              sameElement: sameElement
            };
            return prefixObject;
@@ -488,12 +518,10 @@ function findSimilarPrefix(queue){
   }
 }
 
-function updateDB(url, text){
-  chrome.extension.sendMessage({method: 'updateDB', message: [url, text]},
-      function(response){console.log(response)});
-}
-
+/**
+ * Prepares a message with the text entry to be added to the database.
+ */
 function addToList(text){
   var url = $(location).attr('href');
-  updateDB(url, text);
+  chrome.extension.sendMessage({method: 'updateDB', message: [url, text]});
 }
