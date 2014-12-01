@@ -1,0 +1,21 @@
+.selection {
+  border: thin solid black;
+  opacity: 0.65;
+  position: absolute;
+  z-index: 99999999;
+}
+
+#selectText {
+  color: white;
+  font-family: 'Trebuchet MS', Helvetica, sans-serif;
+  font-size: 15px;
+  position: relative;
+  top: 15px;
+}
+
+.popupButton {
+  height: 20px;
+  position: relative;
+  top: 20px;
+  width: 90px;
+}

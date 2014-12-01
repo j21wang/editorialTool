@@ -2,7 +2,7 @@
 	"manifest_version": 2,
 	"name": "Editorial Tool",
 	"description": "This extension permits a user to add web page content to a universal database.",
-	"version": "0.1",
+	"version": "1.4",
 	"permissions": [
         "tabs",
         "http://*/*",
@@ -11,7 +11,7 @@
     ],
 	"browser_action": {
 		"default_popup": "popup.html",
-		"default_icon": "images/icon.png"
+		"default_icon": "images/greenchrome.png"
 	},
     "web_accessible_resources": [
         "jquery-2.0.2.min.js",
@@ -19,28 +19,30 @@
         "jquery.event.drag.live-2.2.js",
         "jquery.event.drop-2.2.js",
         "jquery.event.drop.live-2.2.js",
-        "excanvas.min.js"
+        "excanvas.min.js",
+        "fbScript.js"
     ],
 	"background": {
-		"scripts": ["js/uuid.js", "js/background.js"]
+		"scripts": ["js/background.js"]
 	},
-    "content_scripts": [
+  "content_scripts": [
         {
             "matches": ["http://*/*", "https://*/*"],
-            "css": ["css/lb.css", "css/content.css"],
+            "css": ["css/content.css"],
             "js": [
-                "js/jquery-2.0.2.min.js",
-                "js/jquery.event.drag-2.2.js",
-                "js/jquery.event.drag.live-2.2.js",
-                "js/jquery.event.drop-2.2.js",
-                "js/jquery.event.drop.live-2.2.js",
-                "js/excanvas.min.js",
+                "lib/jquery/jquery-2.0.2.min.js",
+                "lib/jquery/jquery.event.drag-2.2.js",
+                "lib/jquery/jquery.event.drag.live-2.2.js",
+                "lib/jquery/jquery.event.drop-2.2.js",
+                "lib/jquery/jquery.event.drop.live-2.2.js",
+                "lib/jquery/excanvas.min.js",
                 "js/content.js"
             ]
         }
     ],
     "permissions": [
         "http://researchvm-5.cs.rutgers.edu/",
+        "https://www.facebook.com/",
         "tabs"
     ]
 }

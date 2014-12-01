@@ -1,70 +1,116 @@
 var queue = new Array();
-var tagIndexArr = new Array();
 var groupMode = true;
-var temp;
+var toolOn = true;
 var isImg;
+var isPopUp = false;
+var originalBackground = null;
+var Events = {
+  ENTER: 13,
+  LEFT_MOUSE: 1
+};
+var Config = {
+  LINE_LENGTH: 20,
+  MIN_NUM_HIGHLIGHTED: 3
+};
 
 $(document).ready(function(){
-
-  // Sometimes when trying to draw the line to highlight something,
-  // the user may accidentally click on the link (if it is a link).
-  // To avoid this problem, hold down the "enter" key to disable
-  // all the click events on the page.
-  $(document).keydown(function(e) {
-    if (e.which == 13) {
-      document.addEventListener("click", handler, true);
-      console.log("enter");
+  // Sends a request to get the values stored in localStorage from the
+  // user's previous session.
+  chrome.runtime.sendMessage({method: 'getStatus'}, function(response) {
+    toolOn = response.status.toolOn;
+    groupMode = response.status.isGroupCheck;
+    if (toolOn == true || toolOn == 'true') {
+      turnToolOn();
+    } else {
+      turnToolOff();
     }
   });
 
-  // Once the "enter" key is released, the click events are reenabled.
-  $(document).keyup(function(e) {
-    if (e.which == 13) {
-      document.removeEventListener("click", handler, true);
+  /*chrome.runtime.onMessage.addListener(function(message, sender, sendResponse){
+    groupMode = message.isGroupCheck;
+    toolOn = message.toolOn;
+    sendResponse(message);
+    if (toolOn == true || toolOn == 'true') {
+      turnToolOn();
+      window.location.reload();
+    } else {
+      turnToolOff();
     }
-  });
-
-  drag();
-  chrome.runtime.onMessage.addListener(
-    function(message, sender, sendResponse){
-      groupMode = message.isGroupCheck;
-        sendResponse(message);
-    });
+  });*/
 });
 
+function turnToolOn() {
+  disableClick();
+  enableClick();
+  drag();
+}
+
+/**
+ * Sometimes when trying to draw the line to highlight something,
+ * the user may accidentally click on the link (if it is a link).
+ * To avoid this problem, hold down the "enter" key to disable
+ * all the click events on the page.
+ */
+function disableClick() {
+  $(document).on('keydown', function(e) {
+    if (e.which == Events.ENTER) {
+      document.addEventListener('click', handler, true);
+    }
+  });
+}
+
+// Once the "enter" key is released, the click events are reenabled.
+function enableClick() {
+  $(document).on('keyup', function(e) {
+    if (e.which == Events.ENTER) {
+      document.removeEventListener('click', handler, true);
+    }
+  });
+}
+
+function turnToolOff() {
+  $(document).unbind('dragstart drag dragend');
+  $(document).off('keydown');
+  $(document).off('keyup');
+}
+
 function drag() {
-  $( document )
-      .drag("start",function( ev, dd ){
-        return $('<div class="selection" />')
-            .css('position', 'absolute')
-            .css('border', 'thin solid black')
-            .css('opacity', .65 )
-            .appendTo( document.body );
+  $(document)
+      .drag('start',function(ev, dd){
+        // Adds a div (line) to the document on left mouse click.
+        if (ev.which == Events.LEFT_MOUSE) {
+          return $('<div class="selection" />').appendTo(document.body);
+        }
       })
-      .drag(function( ev, dd ){
-        $( dd.proxy ).css({
-            top: Math.min( ev.pageY, dd.startY ),
-            left: Math.min( ev.pageX, dd.startX ),
-            //height: Math.abs( ev.pageY - dd.startY ),
-            width: Math.abs( ev.pageX - dd.startX )
+      .drag(function(ev, dd){
+        // Specifies the position and dimensions of line on drag.
+        $(dd.proxy).css({
+          top: Math.min(ev.pageY, dd.startY),
+          left: Math.min(ev.pageX, dd.startX),
+          width: Math.abs(ev.pageX - dd.startX)
         });
       })
       .drag("end",function( ev, dd ){
+        // Remove the line once drag event is over and highlight
+        // the element that is directly under the halfway point of
+        // line. The halfway point is used so that the user doesn't
+        // need to be so precise when highlighting an element.
         var rect =  $('.selection')[0].getBoundingClientRect();
-        $( dd.proxy ).remove();
+        var width = parseFloat($(dd.proxy).css('width'));
+        $(dd.proxy).remove();
         var element = document.elementFromPoint(
             rect.left + rect.width / 2, rect.top);
-        highlight(element);
+        if (width > Config.LINE_LENGTH) highlight(element);
       });
 }
 
 function getSelectionHTML(sel){
-  var container = document.createElement("div");
+  var container = document.createElement('div');
   for (var i = 0, len = sel.rangeCount; i < len; ++i) {
     container.appendChild(sel.getRangeAt(i).cloneContents());
   }
   var target = $(container);
-  if($(sel.anchorNode).find("img").length > 0){
+  if($(sel.anchorNode).find('img').length > 0){
     isImg = true;
     return container.innerHTML;
   } else {
@@ -76,8 +122,8 @@ function getSelectionHTML(sel){
 function checkImage(htmlChildren){
   var isImage = false;
   $(htmlChildren).each(function(){
-    var tagName = $($(this)[0]).prop("tagName").toLowerCase();
-    if(tagName == "img") isImage = true;
+    var tagName = $($(this)[0]).prop('tagName').toLowerCase();
+    if(tagName == 'img') isImage = true;
   });
   return isImage;
 }
@@ -85,51 +131,32 @@ function checkImage(htmlChildren){
 function markAsAdded(html,isImage){
   $(html).addClass('recentAdded');
   if(!isImage){
-    $('.recentAdded').css("border","2px solid red");
+    $('.recentAdded').css('border','2px solid red');
   } else {
-    $('.recentAdded').find("img").css("border","2px solid red");
+    $('.recentAdded').find('img').css('border','2px solid red');
   } 
 }
 
 function handler(e) {
-    e.stopPropagation();
-    e.preventDefault();
+  e.stopPropagation();
+  e.preventDefault();
 }
 
 function getPathTo(elm) { 
   var allNodes = document.getElementsByTagName('*'); 
   for (var segs = []; elm && elm.nodeType == 1; elm = elm.parentNode) { 
-    if (elm.hasAttribute('id')) { 
-      var uniqueIdCount = 0; 
-      for (var n=0;n < allNodes.length;n++) { 
-        if (allNodes[n].hasAttribute('id') && allNodes[n].id == elm.id)
-          uniqueIdCount++; 
-        if (uniqueIdCount > 1) break; 
-      }; 
-      if ( uniqueIdCount == 1) { 
-        segs.unshift('id("' + elm.getAttribute('id') + '")'); 
-        return segs.join('/'); 
-      } else { 
-        segs.unshift(elm.localName.toLowerCase() +
-            '[@id="' + elm.getAttribute('id') + '"]'); 
-      } 
-    } else { 
-      for (i = 1, sib = elm.previousSibling; sib; sib = sib.previousSibling) { 
-        if (sib.localName == elm.localName) i++; 
-      }; 
-      segs.unshift(elm.localName.toLowerCase() + '[' + i + ']'); 
+    for (i = 1, sib = elm.previousSibling; sib; sib = sib.previousSibling) { 
+      if (sib.localName == elm.localName) i++; 
     }; 
+    segs.unshift(elm.localName.toLowerCase() + '[' + i + ']'); 
   }; 
   return segs.length ? '/' + segs.join('/') : null; 
 };
 
-function highlight(selection){
-  var html = "";
+function highlight(htmlSelection){
   var isImage = false;
-  console.log(selection);
-  var html = $(selection);
-  var text = html[0].innerText.trim();
-  console.log(text);
+  var html = $(htmlSelection);
+  var text = htmlSelection.innerText.trim();
   var pathToSelected;
   var added;
 
@@ -141,56 +168,60 @@ function highlight(selection){
     pathToSelected = "/html/body//img[@src='"+src+"']";
   } else {
     isImg = false;
-    console.log(html);
     addToList(text);
     markAsAdded(html,isImage);
-    pathToSelected = getPathTo(selection);
-    console.log(pathToSelected);
+    pathToSelected = getPathTo(htmlSelection);
   }
 
   var result = findSelectedTag(pathToSelected);
-  console.log(result);
   var tagArr = makeTagArr(pathToSelected,result);
-  if(queue.length >= 3 && groupMode) queue = [];
+  if(queue.length >= Config.MIN_NUM_HIGHLIGHTED &&
+      (groupMode == "true" || groupMode == true)) queue = [];
   queue.push(tagArr);
-  if(queue.length >= 3 && groupMode){
+  if(queue.length >= Config.MIN_NUM_HIGHLIGHTED &&
+      (groupMode == "true" || groupMode == true)){
     var prefixObject = findSimilarPrefix(queue);
-    console.log(prefixObject);
     var isDifferent = checkSimilarTags(prefixObject.prefixArr);
     if(!isDifferent){
       var prePrefixElement = prefixObject.prePrefixElement;
-      console.log(prePrefixElement);
       var prefixArr = prefixObject.prefixArr;
-      console.log(prefixArr);
       var prePrefix = $(prePrefixElement[0] + ":eq(" + prePrefixElement[1] + ")");
       var sameElement = prefixObject.sameElement;
       var foundSame = false;
       var elementsPathArr = [];
+      var one = [];
+      var two = [];
+      var three = [];
       // push all elements into array after the first element they share
-      console.log(queue);
       for(var i = 0; i < queue[0].length; i++){
         var prePrefixTag = $($(prePrefix)[0]).prop("tagName").toLowerCase();
-        console.log(prePrefixTag);
         var queueTag = $(queue[0][i][0] + ":eq(" + queue[0][i][1] + ")");
-        console.log(queueTag);
-        if(foundSame) elementsPathArr.push(queue[0][i]);
+        if(foundSame) one.push(queue[0][i]);
         if($(queueTag)[0] == $(prePrefix)[0]) foundSame = true;
       }
-      console.log(prePrefix);
+      foundSame = false;
+      for(var i = 0; i < queue[1].length; i++){
+        var prePrefixTag = $($(prePrefix)[0]).prop("tagName").toLowerCase();
+        var queueTag = $(queue[1][i][0] + ":eq(" + queue[1][i][1] + ")");
+        if(foundSame) two.push(queue[1][i]);
+        if($(queueTag)[0] == $(prePrefix)[0]) foundSame = true;
+      }
+      foundSame = false;
+      for(var i = 0; i < queue[2].length; i++){
+        var prePrefixTag = $($(prePrefix)[0]).prop("tagName").toLowerCase();
+        var queueTag = $(queue[2][i][0] + ":eq(" + queue[2][i][1] + ")");
+        if(foundSame) three.push(queue[2][i]);
+        if($(queueTag)[0] == $(prePrefix)[0]) foundSame = true;
+      }
+      elementsPathArr = [one, two, three];
       var targetElement = $(prePrefix)[0];
       if(prePrefixElement[0] == "tbody" || prePrefixElement[0] == "table"){
         var path = findSimilar(targetElement,elementsPathArr,prefixObject,true);
-        console.log(path);
         highlightSimilar(targetElement,path);
       } else {
-        console.log(targetElement);
-        console.log(elementsPathArr);
-        console.log(prefixObject);
         var path = findSimilar(targetElement,elementsPathArr,prefixObject,false);
-        console.log(path);
         highlightSimilar(targetElement,path);
       }
-      console.log(elementsPathArr);
     } else {
         //do nothing
     }
@@ -198,34 +229,38 @@ function highlight(selection){
 }
 
 function popUp(){
-  var add = document.createElement("div");
-  $("body").append(add);
-  $($(add)[0])
+  var add = $("body").append("<div id='popup'></div>");
+  $("#popup")
       .css("background-color","gray")
-      .css("opacity","0.8")
+      .css("opacity","1")
       .css("width","300px")
-      .css("height","70px")
+      .css("height","100px")
       .css("position","fixed")
+      .css("z-index", "9999999")
       .css("top","1em")
       .css("right","1em")
       .css("border-radius","3px")
       .attr("id","box");
-  $("<center><p id='selectText'>Add all to selected table?</p><button id='okButton'>Add All</button><button id='addOneButton'>Add Some</button><button id='cancelButton'>Deselect All</button></center>").appendTo("#box");
-  $("#selectText")
-    .css("color","white")
-    .css("font-size","15px");
-  $('button')
-    .css("width","90px")
-    .css("height","20px");
+
+  $("<center>" + 
+      "<p id='selectText'>Add all to selected table?</p>" +
+      "<button class='popupButton' id='okButton'>Add All</button>" +
+      "<button class='popupButton' id='addOneButton'>Add Some</button>" + 
+      "<button class='popupButton' id='cancelButton'>Deselect All</button>" +
+      "</center>").appendTo("#box");
 }
 
 function addAllToDB(originalBackground){
   if($('.highlighted').length > 0){
-    popUp();
+    if (!isPopUp) {
+      popUp();
+      isPopUp = true;
+    }
     var add = false;
     $("#okButton").click(function(){
       add = true;
       var addArr = [];
+      isPopUp = false;
       $(".highlighted").each(function(){
         if(!isImg){
           var html = $(this).html();
@@ -238,7 +273,6 @@ function addAllToDB(originalBackground){
         }
       });
       addToList(addArr);
-      console.log("Adding all to DB");
       $(".highlighted")
           .css("background-color",originalBackground)
           .css("border","2px solid red")
@@ -249,6 +283,7 @@ function addAllToDB(originalBackground){
     });
 
     $("#addOneButton").click(function(){
+      isPopUp = false;
       $(".highlighted").hover(function(evt){
         var _this = this;
         setTimeoutConst = setTimeout(function(){
@@ -266,6 +301,7 @@ function addAllToDB(originalBackground){
     });
 
     $("#cancelButton").click(function(){
+      isPopUp = false;
       $(".highlighted")
         .css("background-color",originalBackground)
         .css("border","none")
@@ -279,20 +315,25 @@ function findSimilar(targetElement,elementsPathArr,prefixObject,isTable){
   var path = "";
   var siblingNumber;
   var prefixArr = prefixObject.prefixArr;
-  console.log(prefixArr);
   var sameElement = prefixObject.sameElement;
-  for(var i=0; i<elementsPathArr.length; i++){
+  for(var i=0; i<elementsPathArr[0].length; i++){
     var pre = $(prefixArr[0][0] + ":eq(" + prefixArr[0][1] + ")");
-    var ele = $(elementsPathArr[i][0] + ":eq(" + elementsPathArr[i][1] + ")");
-    path = path + " > " + elementsPathArr[i][0];
-    if(pre[0] == ele[0] || (isTable && elementsPathArr[i][0] == "td")){
+    var ele = $(elementsPathArr[0][i][0] + ":eq(" + elementsPathArr[0][i][1] + ")");
+    path = path + " > " + elementsPathArr[0][i][0];
+    if(pre[0] == ele[0] || (isTable && elementsPathArr[0][i][0] == "td" &&
+          elementsPathArr[0][i][2] == elementsPathArr[1][i][2] &&
+          elementsPathArr[0][i][2] == elementsPathArr[2][i][2])){
       if(!sameElement){ // not the same element
-        siblingNumber = elementsPathArr[i-1][2] + 1;
+        siblingNumber = elementsPathArr[0][i-1][2] + 1;
       } else { // same element
-        siblingNumber = elementsPathArr[i][2] + 1;
+        siblingNumber = elementsPathArr[0][i][2] + 1;
       }
-      path = path + ":nth-child("+siblingNumber+")";
-      if(pre[0] == ele[0]) break;
+      if(pre[0] == ele[0]) {
+        path = path + ":nth-child("+siblingNumber+")";
+        break;
+      } else {
+        path = path + ":nth-child("+siblingNumber+")";
+      }
     }
   }
   return path;
@@ -300,7 +341,6 @@ function findSimilar(targetElement,elementsPathArr,prefixObject,isTable){
 
 function highlightSimilar(targetElement,str){
   var similarElementsArr = [];
-  var originalBackground;
   $($(targetElement).find(str)).each(function(){
     var tag = $($(this)[0]).prop("tagName").toLowerCase();
     var siblingNum = $(this).index();
@@ -359,7 +399,6 @@ function findSelectedTag(pathToSelected){
 function makeTagArr(pathToSelected,result){
   var backwardsPath = pathToSelected;
   var originalTagName = $(result).prop("tagName");
-  console.log(originalTagName);
   var currentTagName = $(result).prop("tagName").toLowerCase();
   var siblingIndex = $(result).index();
   var documentIndex = $(currentTagName).index(result);
@@ -405,7 +444,6 @@ function findSimilarPrefix(queue){
   var secondLength;
   var thirdLength;
 
-  console.log(queue);
   if(queue[0][queue[0].length-1][0] == queue[1][queue[1].length-1][0] &&
       queue[1][queue[1].length-1][0] == queue[2][queue[2].length-1][0] &&
       queue[0][queue[0].length-1][2] == queue[1][queue[1].length-1][2] &&
@@ -450,16 +488,12 @@ function findSimilarPrefix(queue){
   }
 }
 
-function update(pageUrl, value){
-  chrome.extension.sendMessage({message: [pageUrl, value]},
-      function(response){
-        console.log(response);
-      });
+function updateDB(url, text){
+  chrome.extension.sendMessage({method: 'updateDB', message: [url, text]},
+      function(response){console.log(response)});
 }
 
-function addToList(item){
-  var val = item;
+function addToList(text){
   var url = $(location).attr('href');
-  update(url,val);
-  console.log("added to table");
+  updateDB(url, text);
 }

@@ -1,52 +1,103 @@
 <!doctype html>
 <html>
   <head>
-    <title>Getting Started Extension's Popup</title>
-    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Alegreya+Sans" />
-    <link rel="stylesheet" type="text/css" href="lib/iCheck/skins/flat/blue.css" />
-    <link rel="stylesheet" type="text/css" href="lib/datatables/media/css/jquery.dataTables.css" />
-    <link rel="stylesheet" type="text/css" href="lib/sidr/dist/stylesheets/jquery.sidr.dark.css" />
-    <link rel="stylesheet" type="text/css" href="css/main.css" />
-    <script type="text/javascript" src="js/jquery-2.0.2.min.js"></script>
-    <script src="js/jquery.event.drag-2.2.js"></script>
-    <script src="js/jquery.event.drag.live-2.2.js"></script>
-    <script src="js/jquery.event.drop-2.2.js"></script>
-    <script src="js/jquery.event.drop.live-2.2.js"></script>
-    <script type="text/javascript" src="lib/iCheck/icheck.js"></script>
-    <script type="text/javascript" src="js/popup.js"></script>
-    <script type="text/javascript" src="lib/datatables/media/js/jquery.dataTables.js"></script> 
-    <script type="text/javascript" src="lib/sidr/dist/jquery.sidr.js"></script>
+    <title>Editorial Tool</title>
+    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Alegreya+Sans">
+    <link rel="stylesheet" type="text/css" href="lib/icheck/blue.css">
+    <link rel="stylesheet" type="text/css" href="lib/datatables/css/jquery.dataTables.css">
+    <link rel="stylesheet" type="text/css" href="lib/foundation/foundation.css">
+    <link rel="stylesheet" type="text/css" href="lib/foundation_icons/stylesheets/general_enclosed_foundicons.css">
+    <link rel="stylesheet" type="text/css" href="css/popup.css">
+    <script src="lib/jquery/jquery-2.0.2.min.js"></script>
+    <script src="lib/foundation/modernizr.js"></script>
+    <script src="lib/foundation/foundation.min.js"></script>
+    <script src="lib/icheck/icheck.js"></script>
+    <script src="js/popup.js"></script>
+    <script src="lib/datatables/js/jquery.dataTables.js"></script> 
+    <script src="lib/md5.js"></script>
   </head>
   <body>
+    <div id="login-box" class="login-popup">
+    <a href="#" class="close"><img src="images/close_pop.png" class="btn_close" title="Close Window" alt="Close" /></a>
+      <form method="post" class="signin" action="#">
+        <fieldset class="textbox">
+          <label class="username">
+            <span>Email</span>
+            <input id="username" name="username" value="" type="text" autocomplete="on" placeholder="Username">
+          </label>
+          <label class="password">
+            <span>Password</span>
+            <input id="password" name="password" value="" type="password" placeholder="Password">
+          </label>
+          <span class="message" style="color: red; height: 10px"></span>
+          <a href="#" class="signin submit button tiny">Sign In</a>
+          <a href="#" class="signup submit button tiny">Sign Up</a>
+        </fieldset>
+      </form>
+    </div>
       <div id="container">
       <div id="leftContainer">
-          <div id="radioContainer">
-              <div id="radioButtons"></div>
-          </div>
-          <button id="createTable">New Table</button>
-          <button id="deleteTable">Delete Table</button>
-          <br>
-          <input type="text" id="tableName" disabled="disabled">
-          <button id="submitName" disabled="disabled">Submit</button>
+        <input type="text" id="searchItem" placeholder="Filter Tables">
+        <i id="searchValues" class="ficon foundicon-search"></i>
+        <i id="resetValues" class="ficon foundicon-refresh"></i>
+        <br><br>
+        <div id="radioContainer">
+          <ul id="radioButtons" class="list"></ul>
+        </div>
+        <br>
+        <a href="#" id="createTable" class="button tiny" data-reveal-id="newTableModal">New Table</a>
+        <a href="#" id="deleteTable" class="button tiny">Delete Table</a>
       </div>
       <div class="verticalLine"></div>
       <div id="rightContainer">
-          <input id="groupCheck" type="checkbox" checked>Group mode
-          <input id="allResultsCheck" type="checkbox" checked>Limit results
-          <button id="csv">Generate CSV</button>
-          <table id="list" cellpadding="0" cellspacing="0" border="0" class="display" width="100%">
-              <thead>
-                  <th>Selected</th>
-                  <th>URL</th>
-              </thead>
-          </table>
-          <br>
-          <button id="deleteEntry">Delete Entry</button>
-          <button id="addEntry">Add Entry</button>
-          <input type="text" id="entry" disabled="disabled">
-          <button id="submitEntry" disabled="disabled">Submit</button>
+        <input id="groupCheck" type="checkbox" checked>Group mode
+        <input id="allResultsCheck" type="checkbox" checked>Limit results
+        <input id="toolOnCheck" type="checkbox" checked>Tool On
+        <a href="#" id="csv" class="button tiny">Generate CSV</a>
+        <a href="#" id="sendEmail" class="button tiny" data-reveal-id="emailModal">Email List</a>
+        <a href="#" id="share" class="button tiny" data-reveal-id="shareModal">Share</a>
+        <table id="list" cellpadding="0" cellspacing="0" border="0" class="display" width="100%">
+          <thead>
+            <th>Selected</th>
+            <th>URL</th>
+          </thead>
+        </table>
+        <br>
+        <a href="#" id="deleteEntry" class="button tiny">Delete Entry</a>
+        <a href="#" id="addEntry" class="button tiny" data-reveal-id="addEntryModal">Add Entry</a>
+        <span id="login">
+          <span id="loginName"></span>
+          <a href="#login-box" class="login-window button tiny">Login</a>
+          <a href="#" id="logout" class="button tiny">Log Out</a>
+        </span>
+        <div id="shareModal" class="reveal-modal" data-reveal>
+          <h1>Share List</h1>
+          Enter emails separate by commas: <input type="text" id="shareList">
+          <a href="#" id="shareSubmit" class="button tiny">Submit</a> OR
+          <a href="#" id="makePublic" class="button tiny">Make Public</a>
+          <a href="#" id="facebook" class="button tiny">Share to Facebook</a>
+          <a class="close-reveal-modal">&#215;</a>
+        </div>
+        <div id="emailModal" class="reveal-modal" data-reveal>
+          <h1>Email List</h1>
+          Enter an email: <input type="text" id="recipient">
+          <a href="#" id="emailSubmit" class="button tiny">Send List</a>
+          <a class="close-reveal-modal">&#215;</a>
+        </div>
+        <div id="addEntryModal" class="reveal-modal" data-reveal>
+          <h1>Manually Add to Table</h1>
+          Enter a table value: <input type="text" id="entry">
+          <a href="#" id="submitEntry" class="button tiny">Submit</a>
+          <a class="close-reveal-modal">&#215;</a>
+        </div>
+        <div id="newTableModal" class="reveal-modal" data-reveal>
+          <h1>Create a New Table</h1>
+          Enter a table name: <input type="text" id="tableName">
+          <a href="#" id="submitName" class="button tiny">Submit</a>
+          <a class="close-reveal-modal">&#215;</a>
+        </div>
       </div>
-      </div>
+    </div>
   </body>
 </html>
 
