@@ -79,7 +79,9 @@ $(document).ready(function(e){
     var row = $(anSelected[0])[0];
     var rowText = $(row).children()[0].innerText;
     var rowURL = $(row).children()[1].innerText;
-    var params = 'deleteEntry=' + rowText + '#' + rowURL;    
+    var params = 'deleteEntry=DeleteEntry';
+    params = params + '&entry=' + rowText;
+    params = params + '&deleteURL=' + rowURL;    
     params = params + '&selectedTable=' + selectedTable;
     console.log(params);
     var response = postRequest(params);
@@ -91,7 +93,9 @@ $(document).ready(function(e){
   $('#addEntry').on('click', function() {
     $('#submitEntry').on('click', function() {
       var entry = $('#entry').val();
-      var params = 'addEntry=' + entry;    
+      if (entry == "") return; // add error message
+      var params = 'addEntry=AddEntry';
+      params = params + '&entry=' + entry;    
       if (selectedTable == '') selectedTable = 'NULL';
       params = params + '&selectedTable=' + selectedTable;
       var response = postRequest(params);
@@ -122,7 +126,7 @@ $(document).ready(function(e){
 
       var buffer = csvData.join('\n');
       var uri = 'data:text/csv;charset=utf8,' + encodeURIComponent(buffer);
-      var fileName = 'edTool_' + selectedTable + '.csv';
+      var fileName = 'listfully_' + selectedTable + '.csv';
       var link = document.createElement('a');
       if(link.download !== undefined){
         link.setAttribute('href', uri);
@@ -139,13 +143,15 @@ $(document).ready(function(e){
   $('#share').on('click', function() {
     $('#shareSubmit').on('click', function() {
       var usersToAdd = $('#shareList').val();
-      var params = 'permissions=' + usersToAdd;    
+      var params = 'permissions=Permissions'
+      params = params + '&users=' + usersToAdd;    
       params = params + '&selectedTable=' + selectedTable;
       var response = postRequest(params);
       if(response) window.location.reload();
     });
     $('#makePublic').on('click', function() { 
-      var params = 'permissions=public&selectedTable=' + selectedTable;
+      var params = 'permissions=Permissions';
+      params = params + '&users=public&selectedTable=' + selectedTable;
       var response = postRequest(params);
       if (response) window.location.reload();
     });
@@ -165,7 +171,8 @@ $(document).ready(function(e){
   // Existing user sign in
   $('.signin.submit.button').on('click', function() {
     var username = $('#username').val();
-    var params = 'username=' + username;
+    var params = 'login=Login';
+    params = params + '&username=' + username;
     var password = $('#password').val();
     var passwordHash = CryptoJS.MD5(password).toString();
     params = params + '&password=' + passwordHash;
@@ -182,7 +189,8 @@ $(document).ready(function(e){
   $('.signup.submit.button').on('click', function() {
     var username = $('#username').val();
     if (validateEmail(username)) {
-      var params = 'newUsername=' + username;
+      var params = 'newUser=NewUser';
+      params = params + '&newUsername=' + username;
       var password = $('#password').val();
       var passwordHash = CryptoJS.MD5(password).toString();
       params = params + '&password=' + passwordHash;
@@ -254,7 +262,8 @@ $(document).ready(function(e){
       proceed = false;
     }
     if(proceed) {
-        var params = 'emailFrom=' + localStorage.email;    
+        var params = 'email=Email';
+        params = params + '&emailFrom=' + localStorage.email;    
         params = params + '&emailTo=' + $('#recipient').val();
         params = params + '&selectedTable=' + selectedTable;    
         var response = postRequest(params);
@@ -285,7 +294,9 @@ var table = {
 
   // delete currently selected table
   deleteTable: function(selectedTable){
-    var params = 'deleteTable=' + selectedTable;    
+    var params = 'deleteTable=DeleteTable';    
+    params = params + '&selectedTable=' + selectedTable;    
+    console.log(params);
     var response = postRequest(params);
     if(response) $('#radioButtons #' + selectedTable).remove();
   },
@@ -297,7 +308,8 @@ var table = {
 
   // create a new table
   createTable: function(tableName){
-    var params = 'createTable=' + tableName;
+    var params = 'createTable=CreateTable';
+    params = params + '&selectedTable=' + tableName;
     params = params + '&user=' + localStorage.email;
     var response = postRequest(params);
     if(response){
@@ -352,7 +364,8 @@ var select = {
 
   // filters the displayed tables by the user's search query
   filterTables: function(searchValue) {
-    var params = 'searchValue=' + searchValue;
+    var params = 'filterTables=FilterTables';
+    params = params + '&searchValue=' + searchValue;
     params = params + '&user=' + localStorage.email;
     var response = postRequest(params);
     var responseDiv = document.createElement('div');
@@ -472,8 +485,8 @@ function displayLoginMask() {
   $('#loginMask').fadeIn(300);
   $('#loginMask').append('<div style="position: relative; top: 80px"' +
       'id="loginContainer"></div>');
-  $('#loginContainer').append('<center><h1 id="editorialTool">' +
-      'Editorial Tool</h1></center>');
+  $('#loginContainer').append('<center><h1 id="listfully">' +
+      'Listfully</h1></center>');
   $('#loginContainer').append('<center><a href="#login-box"' +
       'class="login-window button">Login</a></center>');
 }
